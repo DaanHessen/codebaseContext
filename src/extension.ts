@@ -52,7 +52,7 @@ class ContextGeneratorViewProvider implements vscode.WebviewViewProvider {
                 console.log('Received message from webview:', data.command);
                 switch (data.command) {
                     case 'generate': {
-                        await this._generateContext(data.excludePatterns, data.headerTemplate);
+                        await this._generateContext(data.projectExclusions, data.globalExclusions, data.headerTemplate);
                         break;
                     }
                     case 'getConfig': {
@@ -78,7 +78,7 @@ class ContextGeneratorViewProvider implements vscode.WebviewViewProvider {
         }
     }
 
-    private async _generateContext(excludePatterns: string[], headerTemplate: string) {
+    private async _generateContext(projectExclusions: string[], globalExclusions: string[], headerTemplate: string) {
         try {
             const workspaceFolder = vscode.workspace.workspaceFolders?.[0];
             if (!workspaceFolder) {
@@ -87,9 +87,13 @@ class ContextGeneratorViewProvider implements vscode.WebviewViewProvider {
 
             await this._postMessage({ type: 'progress', value: 0, status: 'Starting generation...' });
 
+            // Combine project and global exclusions
+            const excludePatterns = [...new Set([...projectExclusions, ...globalExclusions])];
+
             // Save current configuration
             const config = vscode.workspace.getConfiguration('codebaseContext');
-            await config.update('excludePatterns', excludePatterns, vscode.ConfigurationTarget.Global);
+            await config.update('projectExclusions', projectExclusions, vscode.ConfigurationTarget.Workspace);
+            await config.update('globalExclusions', globalExclusions, vscode.ConfigurationTarget.Global);
             await config.update('headerTemplate', headerTemplate, vscode.ConfigurationTarget.Global);
 
             await this._postMessage({ type: 'progress', value: 20, status: 'Analyzing workspace...' });
@@ -130,12 +134,14 @@ class ContextGeneratorViewProvider implements vscode.WebviewViewProvider {
         try {
             console.log('Sending configuration to webview');
             const config = vscode.workspace.getConfiguration('codebaseContext');
-            const excludePatterns = config.get<string[]>('excludePatterns') || [];
+            const projectExclusions = config.get<string[]>('projectExclusions') || [];
+            const globalExclusions = config.get<string[]>('globalExclusions') || [];
             const headerTemplate = config.get<string>('headerTemplate') || '';
 
             await this._postMessage({
                 type: 'config',
-                excludePatterns,
+                projectExclusions,
+                globalExclusions,
                 headerTemplate
             });
             console.log('Configuration sent successfully');
@@ -145,15 +151,17 @@ class ContextGeneratorViewProvider implements vscode.WebviewViewProvider {
         }
     }
 
-    private async _saveConfig(config: { excludePatterns: string[], headerTemplate: string }) {
+    private async _saveConfig(config: { projectExclusions: string[], globalExclusions: string[], headerTemplate: string }) {
         try {
             const configuration = vscode.workspace.getConfiguration('codebaseContext');
-            await configuration.update('excludePatterns', config.excludePatterns, vscode.ConfigurationTarget.Global);
+            await configuration.update('projectExclusions', config.projectExclusions, vscode.ConfigurationTarget.Workspace);
+            await configuration.update('globalExclusions', config.globalExclusions, vscode.ConfigurationTarget.Global);
             await configuration.update('headerTemplate', config.headerTemplate, vscode.ConfigurationTarget.Global);
-            vscode.window.showInformationMessage('Configuration saved successfully!');
+            await this._postMessage({ type: 'saveSuccess' });
         } catch (error) {
             console.error('Error saving configuration:', error);
             vscode.window.showErrorMessage(`Failed to save configuration: ${error}`);
+            await this._postMessage({ type: 'error', message: `Failed to save configuration: ${error}` });
         }
     }
 

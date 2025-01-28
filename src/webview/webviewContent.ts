@@ -31,12 +31,14 @@ export function getWebviewContent(webview: vscode.Webview): string {
     <head>
         <meta charset="UTF-8">
         <meta name="viewport" content="width=device-width, initial-scale=1.0">
-        <meta http-equiv="Content-Security-Policy" content="default-src 'none'; style-src ${cspSource} 'unsafe-inline'; script-src 'nonce-${nonce}';">
+        <meta http-equiv="Content-Security-Policy" content="default-src 'none'; style-src ${cspSource} 'unsafe-inline'; img-src ${cspSource} https:; script-src ${cspSource} 'nonce-${nonce}'; font-src ${cspSource};">
         <title>Codebase Context Generator</title>
         <style>
             :root {
-                --container-padding: 12px;
-                --section-spacing: 16px;
+                --container-padding: 16px;
+                --section-spacing: 20px;
+                --tab-height: 36px;
+                --description-color: var(--vscode-descriptionForeground);
             }
 
             body {
@@ -57,32 +59,43 @@ export function getWebviewContent(webview: vscode.Webview): string {
                 padding: var(--container-padding);
             }
 
+            .description {
+                color: var(--description-color);
+                font-size: 12px;
+                margin: 4px 0 12px 0;
+                line-height: 1.4;
+            }
+
             input, button, textarea {
                 border: 1px solid var(--vscode-input-border);
                 color: var(--vscode-input-foreground);
                 background-color: var(--vscode-input-background);
-                border-radius: 2px;
-                padding: 4px 8px;
+                border-radius: 4px;
+                padding: 6px 10px;
+                width: 100%;
+                box-sizing: border-box;
             }
 
             textarea {
                 resize: vertical;
-                min-height: 80px;
+                min-height: 120px;
                 font-family: var(--vscode-editor-font-family);
                 font-size: var(--vscode-editor-font-size);
+                line-height: 1.5;
             }
 
             button {
                 background-color: var(--vscode-button-background);
                 color: var(--vscode-button-foreground);
                 border: none;
-                padding: 6px 14px;
+                padding: 8px 16px;
                 cursor: pointer;
                 display: inline-flex;
                 align-items: center;
                 justify-content: center;
                 border-radius: 4px;
                 font-weight: 500;
+                width: auto;
             }
 
             button:hover {
@@ -94,6 +107,38 @@ export function getWebviewContent(webview: vscode.Webview): string {
                 cursor: not-allowed;
             }
 
+            .tabs {
+                display: flex;
+                border-bottom: 1px solid var(--vscode-panel-border);
+                margin-bottom: var(--section-spacing);
+            }
+
+            .tab {
+                padding: 8px 16px;
+                cursor: pointer;
+                background: none;
+                border: none;
+                color: var(--vscode-foreground);
+                border-bottom: 2px solid transparent;
+                font-weight: 500;
+                opacity: 0.7;
+            }
+
+            .tab.active {
+                border-bottom-color: var(--vscode-focusBorder);
+                opacity: 1;
+            }
+
+            .tab-content {
+                display: none;
+                height: calc(100% - var(--tab-height));
+            }
+
+            .tab-content.active {
+                display: flex;
+                flex-direction: column;
+            }
+
             .section {
                 background: var(--vscode-editor-background);
                 border-radius: 6px;
@@ -103,32 +148,39 @@ export function getWebviewContent(webview: vscode.Webview): string {
             }
 
             .section-header {
-                padding: 8px 12px;
+                padding: 10px 14px;
                 background: var(--vscode-sideBarSectionHeader-background);
                 border-bottom: 1px solid var(--vscode-panel-border);
                 border-radius: 6px 6px 0 0;
                 font-weight: 600;
-                font-size: 11px;
+                font-size: 12px;
                 text-transform: uppercase;
                 letter-spacing: 0.5px;
             }
 
             .section-content {
-                padding: 12px;
+                padding: 14px;
+            }
+
+            .exclusion-container {
+                display: flex;
+                flex-direction: column;
+                gap: var(--section-spacing);
             }
 
             .exclusion-list {
                 flex: 1;
                 overflow-y: auto;
                 min-height: 100px;
-                max-height: calc(100vh - 400px);
+                max-height: calc(100vh - 500px);
             }
 
             .exclusion-item {
                 display: flex;
                 align-items: center;
-                padding: 4px 0;
-                border-radius: 3px;
+                padding: 6px 8px;
+                border-radius: 4px;
+                margin-bottom: 4px;
             }
 
             .exclusion-item:hover {
@@ -137,6 +189,7 @@ export function getWebviewContent(webview: vscode.Webview): string {
 
             .exclusion-item input[type="checkbox"] {
                 margin: 0 8px 0 0;
+                width: auto;
             }
 
             .exclusion-item span {
@@ -153,6 +206,10 @@ export function getWebviewContent(webview: vscode.Webview): string {
 
             .add-exclusion input {
                 flex: 1;
+            }
+
+            .add-exclusion button {
+                white-space: nowrap;
             }
 
             .progress-container {
@@ -182,21 +239,34 @@ export function getWebviewContent(webview: vscode.Webview): string {
                 color: var(--vscode-descriptionForeground);
             }
 
-            .error-message {
-                color: var(--vscode-errorForeground);
-                margin-top: 8px;
+            .notification {
+                position: fixed;
+                bottom: 20px;
+                right: 20px;
+                padding: 10px 16px;
+                border-radius: 4px;
+                font-size: 12px;
+                animation: fadeIn 0.3s ease;
                 display: none;
-                font-size: 11px;
             }
 
-            .button-container {
-                display: flex;
-                gap: 8px;
-                margin-top: var(--section-spacing);
+            .notification.success {
+                background-color: var(--vscode-notificationsSuccessIcon-foreground);
+                color: var(--vscode-editor-background);
+            }
+
+            .notification.error {
+                background-color: var(--vscode-notificationsErrorIcon-foreground);
+                color: var(--vscode-editor-background);
+            }
+
+            @keyframes fadeIn {
+                from { opacity: 0; transform: translateY(10px); }
+                to { opacity: 1; transform: translateY(0); }
             }
 
             .remove-btn {
-                padding: 2px 8px;
+                padding: 4px 10px;
                 font-size: 11px;
                 background-color: var(--vscode-errorForeground);
             }
@@ -209,22 +279,47 @@ export function getWebviewContent(webview: vscode.Webview): string {
     </head>
     <body>
         <div class="container">
+            <div class="tabs">
+                <button class="tab active" data-tab="general">General</button>
+                <button class="tab" data-tab="settings">Settings</button>
+            </div>
+
+            <div class="tab-content active" data-tab="general">
             <div class="section">
                 <div class="section-header">Header Template</div>
                 <div class="section-content">
+                        <div class="description">Define the template that will be used as a header for your code files. This template will be automatically inserted at the top of each file.</div>
                     <textarea id="headerTemplate" placeholder="Enter header template..."></textarea>
                 </div>
             </div>
 
-            <div class="section" style="flex: 1; display: flex; flex-direction: column;">
-                <div class="section-header">Exclusion Patterns</div>
-                <div class="section-content" style="flex: 1; display: flex; flex-direction: column;">
+                <div class="section">
+                    <div class="section-header">Project-Specific Exclusions</div>
+                    <div class="section-content">
+                        <div class="description">Specify patterns to exclude specific files or directories from your current project. These exclusions only apply to this workspace.</div>
                     <div class="add-exclusion">
-                        <input type="text" id="newPattern" placeholder="Add new exclusion pattern (e.g., **/*.log)">
-                        <button id="addPattern">Add</button>
+                            <input type="text" id="newProjectPattern" placeholder="Add new exclusion pattern (e.g., src/tests/**)">
+                            <button id="addProjectPattern">Add Pattern</button>
+                        </div>
+                        <div class="exclusion-list" id="projectExclusionList">
+                            <!-- Project-specific exclusion patterns will be populated here -->
+                        </div>
                     </div>
-                    <div class="exclusion-list" id="exclusionList">
-                        <!-- Exclusion patterns will be populated here -->
+                </div>
+            </div>
+
+            <div class="tab-content" data-tab="settings">
+                <div class="section">
+                    <div class="section-header">Global Exclusions</div>
+                    <div class="section-content">
+                        <div class="description">Define patterns that will be excluded from all projects. These exclusions apply globally across all workspaces.</div>
+                        <div class="add-exclusion">
+                            <input type="text" id="newGlobalPattern" placeholder="Add new global exclusion pattern (e.g., **/*.log)">
+                            <button id="addGlobalPattern">Add Pattern</button>
+                        </div>
+                        <div class="exclusion-list" id="globalExclusionList">
+                            <!-- Global exclusion patterns will be populated here -->
+                        </div>
                     </div>
                 </div>
             </div>
@@ -236,11 +331,10 @@ export function getWebviewContent(webview: vscode.Webview): string {
                 <div class="progress-status" id="progressStatus">Starting...</div>
             </div>
 
-            <div class="error-message" id="errorMessage"></div>
+            <div class="notification" id="notification"></div>
 
             <div class="button-container">
                 <button id="generateBtn" style="flex: 1;">Generate Context</button>
-                <button id="saveConfigBtn">Save Configuration</button>
             </div>
         </div>
 
@@ -248,7 +342,9 @@ export function getWebviewContent(webview: vscode.Webview): string {
             ${errorHandling}
 
             const vscode = acquireVsCodeApi();
-            let currentExclusions = [];
+            let activeTab = 'general';
+            let projectExclusions = [];
+            let globalExclusions = [];
             let initialized = false;
 
             function init() {
@@ -273,14 +369,17 @@ export function getWebviewContent(webview: vscode.Webview): string {
                                     updateProgress(message.value, message.status);
                                     break;
                                 case 'error':
-                                    showError(message.message);
+                                    showNotification(message.message, 'error');
+                                    break;
+                                case 'saveSuccess':
+                                    showNotification('Configuration saved successfully', 'success');
                                     break;
                                 default:
                                     console.warn('Unknown message type:', message.type);
                             }
                         } catch (error) {
                             console.error('Error handling message:', error);
-                            showError(error.message);
+                            showNotification(error.message, 'error');
                         }
                     });
 
@@ -289,25 +388,67 @@ export function getWebviewContent(webview: vscode.Webview): string {
                     console.log('Webview initialized successfully');
                 } catch (error) {
                     console.error('Error during initialization:', error);
-                    showError('Failed to initialize: ' + error.message);
+                    showNotification('Failed to initialize: ' + error.message, 'error');
                 }
             }
 
+            // Tab switching logic
+            document.querySelectorAll('.tab').forEach(tab => {
+                tab.addEventListener('click', () => {
+                    const tabName = tab.dataset.tab;
+                    
+                    // Update active tab
+                    document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+                    tab.classList.add('active');
+                    
+                    // Update active content
+                    document.querySelectorAll('.tab-content').forEach(content => {
+                        content.classList.remove('active');
+                        if (content.dataset.tab === tabName) {
+                            content.classList.add('active');
+                        }
+                    });
+                    
+                    activeTab = tabName;
+                });
+            });
+
             function setupEventListeners() {
-                document.getElementById('addPattern').addEventListener('click', () => {
-                    const input = document.getElementById('newPattern');
+                // Project-specific exclusions
+                document.getElementById('addProjectPattern').addEventListener('click', () => {
+                    const input = document.getElementById('newProjectPattern');
                     const pattern = input.value.trim();
                     
-                    if (pattern && !currentExclusions.includes(pattern)) {
-                        currentExclusions.push(pattern);
-                        updateExclusionList();
+                    if (pattern && !projectExclusions.includes(pattern)) {
+                        projectExclusions.push(pattern);
+                        updateExclusionList('project');
                         input.value = '';
+                        autoSave();
                     }
                 });
 
-                document.getElementById('newPattern').addEventListener('keypress', (e) => {
+                document.getElementById('newProjectPattern').addEventListener('keypress', (e) => {
                     if (e.key === 'Enter') {
-                        document.getElementById('addPattern').click();
+                        document.getElementById('addProjectPattern').click();
+                    }
+                });
+
+                // Global exclusions
+                document.getElementById('addGlobalPattern').addEventListener('click', () => {
+                    const input = document.getElementById('newGlobalPattern');
+                    const pattern = input.value.trim();
+                    
+                    if (pattern && !globalExclusions.includes(pattern)) {
+                        globalExclusions.push(pattern);
+                        updateExclusionList('global');
+                        input.value = '';
+                        autoSave();
+                    }
+                });
+
+                document.getElementById('newGlobalPattern').addEventListener('keypress', (e) => {
+                    if (e.key === 'Enter') {
+                        document.getElementById('addGlobalPattern').click();
                     }
                 });
 
@@ -315,56 +456,71 @@ export function getWebviewContent(webview: vscode.Webview): string {
                     const headerTemplate = document.getElementById('headerTemplate').value;
                     
                     document.getElementById('progressContainer').style.display = 'block';
-                    document.getElementById('errorMessage').style.display = 'none';
                     document.getElementById('generateBtn').disabled = true;
 
                     vscode.postMessage({
                         command: 'generate',
-                        excludePatterns: currentExclusions.filter(
-                            (_, i) => document.querySelectorAll('.exclusion-item input[type="checkbox"]')[i].checked
-                        ),
+                        projectExclusions: getEnabledExclusions('project'),
+                        globalExclusions: getEnabledExclusions('global'),
                         headerTemplate
                     });
                 });
 
-                document.getElementById('saveConfigBtn').addEventListener('click', () => {
-                    const headerTemplate = document.getElementById('headerTemplate').value;
-                    
-                    vscode.postMessage({
-                        command: 'saveConfig',
-                        config: {
-                            excludePatterns: currentExclusions,
-                            headerTemplate
-                        }
-                    });
+                // Auto-save for header template
+                document.getElementById('headerTemplate').addEventListener('input', () => {
+                    autoSave();
                 });
             }
 
             function updateUI(config) {
-                document.getElementById('headerTemplate').value = config.headerTemplate;
-                currentExclusions = config.excludePatterns;
-                updateExclusionList();
+                document.getElementById('headerTemplate').value = config.headerTemplate || '';
+                projectExclusions = config.projectExclusions || [];
+                globalExclusions = config.globalExclusions || [];
+                updateExclusionList('project');
+                updateExclusionList('global');
             }
 
-            function updateExclusionList() {
-                const list = document.getElementById('exclusionList');
+            function updateExclusionList(type) {
+                const list = document.getElementById(type === 'project' ? 'projectExclusionList' : 'globalExclusionList');
+                const exclusions = type === 'project' ? projectExclusions : globalExclusions;
                 list.innerHTML = '';
 
-                currentExclusions.forEach((pattern, index) => {
+                exclusions.forEach((pattern, index) => {
                     const item = document.createElement('div');
                     item.className = 'exclusion-item';
                     item.innerHTML = \`
                         <input type="checkbox" checked>
                         <span>\${pattern}</span>
-                        <button onclick="removeExclusion(\${index})" class="remove-btn">Remove</button>
+                        <button class="remove-btn" onclick="removeExclusion('\${type}', \${index})">Remove</button>
                     \`;
+
+                    const checkbox = item.querySelector('input[type="checkbox"]');
+                    checkbox.addEventListener('change', () => {
+                        autoSave();
+                    });
+
                     list.appendChild(item);
                 });
             }
 
-            function removeExclusion(index) {
-                currentExclusions.splice(index, 1);
-                updateExclusionList();
+            function removeExclusion(type, index) {
+                if (type === 'project') {
+                    projectExclusions.splice(index, 1);
+                } else {
+                    globalExclusions.splice(index, 1);
+                }
+                updateExclusionList(type);
+                autoSave();
+            }
+
+            function getEnabledExclusions(type) {
+                const list = document.getElementById(type === 'project' ? 'projectExclusionList' : 'globalExclusionList');
+                const exclusions = type === 'project' ? projectExclusions : globalExclusions;
+                
+                return exclusions.filter((_, index) => {
+                    const checkbox = list.children[index].querySelector('input[type="checkbox"]');
+                    return checkbox.checked;
+                });
             }
 
             function updateProgress(value, status) {
@@ -379,11 +535,27 @@ export function getWebviewContent(webview: vscode.Webview): string {
                 }
             }
 
-            function showError(message) {
-                const errorElement = document.getElementById('errorMessage');
-                errorElement.textContent = message;
-                errorElement.style.display = 'block';
-                document.getElementById('generateBtn').disabled = false;
+            // Notification system
+            function showNotification(message, type = 'success') {
+                const notification = document.getElementById('notification');
+                notification.textContent = message;
+                notification.className = 'notification ' + type;
+                notification.style.display = 'block';
+                
+                setTimeout(() => {
+                    notification.style.display = 'none';
+                }, 3000);
+            }
+
+            // Auto-save functionality
+            function autoSave() {
+                const config = {
+                    headerTemplate: document.getElementById('headerTemplate').value,
+                    projectExclusions: projectExclusions,
+                    globalExclusions: globalExclusions
+                };
+
+                vscode.postMessage({ command: 'saveConfig', config });
             }
 
             // Initialize the webview

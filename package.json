@@ -36,7 +36,12 @@
     "configuration": {
       "title": "Codebase Context Generator",
       "properties": {
-        "codebaseContext.excludePatterns": {
+        "codebaseContext.projectExclusions": {
+          "type": "array",
+          "default": [],
+          "description": "Project-specific patterns to exclude from context generation (workspace level)"
+        },
+        "codebaseContext.globalExclusions": {
           "type": "array",
           "default": [
             "**/node_modules/**",
@@ -71,7 +76,7 @@
             "**/*.min.*",
             "**/*.map"
           ],
-          "description": "Patterns to exclude from context generation"
+          "description": "Global patterns to exclude from context generation (applies to all workspaces)"
         },
         "codebaseContext.maxFileSizeKB": {
           "type": "number",
