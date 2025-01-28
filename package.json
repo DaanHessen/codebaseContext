@@ -1,0 +1,113 @@
+{
+  "name": "codebase-context-generator",
+  "displayName": "Codebase Context Generator",
+  "description": "Generate shareable codebase context for AI-powered development assistants",
+  "version": "0.1.0-alpha",
+  "publisher": "vscode",
+  "engines": {
+    "vscode": "^1.80.0"
+  },
+  "categories": [
+    "Other"
+  ],
+  "activationEvents": [
+    "onView:codebaseContextGenerator"
+  ],
+  "main": "./dist/extension.js",
+  "contributes": {
+    "viewsContainers": {
+      "activitybar": [
+        {
+          "id": "codebase-context",
+          "title": "Codebase Context",
+          "icon": "media/icon.svg"
+        }
+      ]
+    },
+    "views": {
+      "codebase-context": [
+        {
+          "type": "webview",
+          "id": "codebaseContextGenerator",
+          "name": "Context Generator"
+        }
+      ]
+    },
+    "configuration": {
+      "title": "Codebase Context Generator",
+      "properties": {
+        "codebaseContext.excludePatterns": {
+          "type": "array",
+          "default": [
+            "**/node_modules/**",
+            "**/.git/**",
+            "**/dist/**",
+            "**/build/**",
+            "**/coverage/**",
+            "**/*.log",
+            "**/.env*",
+            "**/package-lock.json",
+            "**/yarn.lock",
+            "**/.DS_Store",
+            "**/.next/**",
+            "**/.cache/**",
+            "**/.temp/**",
+            "**/tmp/**",
+            "**/__pycache__/**",
+            "**/*.pyc",
+            "**/venv/**",
+            "**/.venv/**",
+            "**/bin/**",
+            "**/obj/**",
+            "**/target/**",
+            "**/.idea/**",
+            "**/.vscode/**",
+            "**/bower_components/**",
+            "**/vendor/**",
+            "**/.vs/**",
+            "**/out/**",
+            "**/.output/**",
+            "**/generated/**",
+            "**/*.min.*",
+            "**/*.map"
+          ],
+          "description": "Patterns to exclude from context generation"
+        },
+        "codebaseContext.maxFileSizeKB": {
+          "type": "number",
+          "default": 1024,
+          "description": "Maximum file size in KB to include in context"
+        },
+        "codebaseContext.headerTemplate": {
+          "type": "string",
+          "default": "# {projectName} Codebase Context\n\nGenerated on: {date}\nWorkspace: {workspacePath}\n\nThis is the entire codebase of my project. Please analyze and understand the code structure, dependencies, and functionality. The context includes key files and excludes build artifacts, dependencies, and sensitive information.",
+          "description": "Template for context header"
+        }
+      }
+    }
+  },
+  "scripts": {
+    "vscode:prepublish": "npm run package",
+    "compile": "webpack",
+    "watch": "webpack --watch",
+    "package": "webpack --mode production --devtool hidden-source-map",
+    "lint": "eslint src --ext ts",
+    "package-extension": "vsce package"
+  },
+  "devDependencies": {
+    "@types/minimatch": "^5.1.2",
+    "@types/node": "^16.18.34",
+    "@types/vscode": "^1.80.0",
+    "@typescript-eslint/eslint-plugin": "^6.7.0",
+    "@typescript-eslint/parser": "^6.7.0",
+    "@vscode/vsce": "^2.21.0",
+    "eslint": "^8.26.0",
+    "ts-loader": "^9.4.4",
+    "typescript": "^5.2.2",
+    "webpack": "^5.88.2",
+    "webpack-cli": "^5.1.4"
+  },
+  "dependencies": {
+    "minimatch": "^5.1.0"
+  }
+}
