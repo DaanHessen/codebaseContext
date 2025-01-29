@@ -14,7 +14,8 @@ interface ContextOptions {
 
 export async function generateContext(
     workspacePath: string,
-    options: ContextOptions
+    options: ContextOptions,
+    cancellationToken?: vscode.CancellationToken
 ): Promise<string> {
     const {
         excludePatterns,
@@ -30,7 +31,7 @@ export async function generateContext(
     // Get all files
     const files = await getAllFiles(workspacePath, excludePatterns, progress => {
         onProgress?.(progress * 0.3, 'Scanning files...');
-    });
+    }, cancellationToken);
 
     // Process files
     let processedFiles = 0;
@@ -38,6 +39,11 @@ export async function generateContext(
     const contents: string[] = [];
 
     for (const file of files) {
+        // Check for cancellation
+        if (cancellationToken?.isCancellationRequested) {
+            throw new vscode.CancellationError();
+        }
+
         try {
             const stats = await fs.stat(file);
             const fileSizeKB = stats.size / 1024;
@@ -92,12 +98,18 @@ function generateHeader(
 async function getAllFiles(
     dir: string,
     excludePatterns: string[],
-    onProgress?: (scanned: number) => void
+    onProgress?: (scanned: number) => void,
+    cancellationToken?: vscode.CancellationToken
 ): Promise<string[]> {
     const files: string[] = [];
     let scanned = 0;
 
     async function scan(directory: string): Promise<void> {
+        // Check for cancellation
+        if (cancellationToken?.isCancellationRequested) {
+            throw new vscode.CancellationError();
+        }
+
         const entries = await fs.readdir(directory, { withFileTypes: true });
         
         for (const entry of entries) {

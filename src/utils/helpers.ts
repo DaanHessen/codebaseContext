@@ -6,42 +6,24 @@ import minimatch from 'minimatch';
  * Check if a file should be excluded based on patterns
  */
 export function shouldExcludeFile(filePath: string, excludePatterns: string[]): boolean {
-    // Normalize path for cross-platform compatibility
     const normalizedPath = filePath.replace(/\\/g, '/');
+    const fileName = path.basename(normalizedPath);
     
     return excludePatterns.some(pattern => {
-        try {
-            // Normalize pattern
-            let normalizedPattern = pattern.replace(/\\/g, '/');
-
-            // If pattern starts with '/', make it relative to workspace root
-            if (normalizedPattern.startsWith('/')) {
-                normalizedPattern = normalizedPattern.substring(1);
-            }
-
-            // If pattern doesn't include '**' and ends with '/**', add it
-            if (!normalizedPattern.includes('**') && normalizedPattern.endsWith('/')) {
-                normalizedPattern += '**';
-            }
-
-            // If pattern is a file extension, make it match files with that extension anywhere
-            if (normalizedPattern.startsWith('.') && !normalizedPattern.includes('/')) {
-                normalizedPattern = `**/*${normalizedPattern}`;
-            }
-
-            // Use minimatch for glob pattern matching
-            return minimatch(normalizedPath, normalizedPattern, {
-                dot: true,           // Match dot files
-                matchBase: true,     // Match basename if pattern has no slashes
-                nocase: true,        // Case insensitive matching
-                noglobstar: false,   // Support ** for matching across directories
-                nonull: false,       // Don't match null if there are no matches
-                flipNegate: false    // Don't flip negation
-            });
-        } catch (error) {
-            console.error(`Error matching pattern ${pattern}:`, error);
-            return false;
+        // Convert pattern to use forward slashes
+        pattern = pattern.replace(/\\/g, '/');
+        
+        // If pattern doesn't contain a slash, only match against the filename
+        if (!pattern.includes('/')) {
+            return minimatch(fileName, pattern, { dot: true });
         }
+        
+        // For directory patterns, append /** if not already present
+        if (!pattern.endsWith('/**') && !pattern.includes('.')) {
+            pattern = `${pattern}/**`;
+        }
+        
+        return minimatch(normalizedPath, pattern, { dot: true });
     });
 }
 

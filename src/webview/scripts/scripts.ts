@@ -1,6 +1,18 @@
 import { ExclusionController } from '../controllers/ExclusionController';
 import { TabController } from '../controllers/TabController';
 import { ProgressController } from '../controllers/ProgressController';
+import { Notification } from '../components/Shared/Notification';
+
+// Default header template
+const DEFAULT_HEADER_TEMPLATE = `# {projectName}
+Generated on: {date}
+Workspace: {workspacePath}
+
+## File Structure
+{fileTree}
+
+## Files
+{content}`;
 
 // We don't need to redeclare Window.postMessage as it's already defined in lib.dom.d.ts
 declare const acquireVsCodeApi: () => {
@@ -16,14 +28,14 @@ window.addEventListener('load', () => {
   const state = vscode.getState() || {
     projectExclusions: [],
     globalExclusions: [],
-    headerTemplate: ''
+    headerTemplate: DEFAULT_HEADER_TEMPLATE
   };
 
   // Initialize tab switching
   TabController.init();
 
   // Initialize progress tracking
-  ProgressController.initialize();
+  ProgressController.initialize(vscode);
 
   // Initialize exclusion management
   const exclusionController = new ExclusionController(
@@ -48,8 +60,47 @@ window.addEventListener('load', () => {
       case 'progress':
         ProgressController.update(message.value, message.status);
         break;
+      case 'cancelled':
+        ProgressController.update(0, 'Cancelled');
+        Notification.show('Generation cancelled', 'error');
+        break;
+      case 'saveSuccess':
+        Notification.show('Settings saved successfully');
+        break;
+      case 'error':
+        Notification.show(message.message, 'error');
+        break;
     }
   });
+
+  // Add generate button click handler
+  const generateBtn = document.getElementById('generateBtn');
+  if (generateBtn) {
+    generateBtn.addEventListener('click', () => {
+      const headerTemplate = (document.getElementById('headerTemplate') as HTMLTextAreaElement)?.value || DEFAULT_HEADER_TEMPLATE;
+      const projectExclusions = Array.from(exclusionController.getProjectExclusions());
+      const globalExclusions = Array.from(exclusionController.getGlobalExclusions());
+
+      vscode.postMessage({
+        command: 'generate',
+        projectExclusions,
+        globalExclusions,
+        headerTemplate
+      });
+    });
+  }
+
+  // Add reset storage button click handler
+  const resetStorageBtn = document.getElementById('resetStorageBtn');
+  if (resetStorageBtn) {
+    resetStorageBtn.addEventListener('click', () => {
+      if (confirm('Are you sure you want to reset all settings and exclusions? This cannot be undone.')) {
+        vscode.postMessage({
+          command: 'resetStorage'
+        });
+      }
+    });
+  }
 
   // Request initial configuration
   vscode.postMessage({ command: 'getConfig' });
@@ -59,7 +110,7 @@ function updateUI(config: any) {
   // Update header template
   const headerTemplate = document.getElementById('headerTemplate') as HTMLTextAreaElement;
   if (headerTemplate) {
-    headerTemplate.value = config.headerTemplate || '';
+    headerTemplate.value = config.headerTemplate || DEFAULT_HEADER_TEMPLATE;
   }
 
   // Update exclusions
@@ -68,6 +119,13 @@ function updateUI(config: any) {
     config.projectExclusions || [],
     config.globalExclusions || []
   );
+
+  // Save state
+  vscode.setState({
+    projectExclusions: config.projectExclusions || [],
+    globalExclusions: config.globalExclusions || [],
+    headerTemplate: config.headerTemplate || DEFAULT_HEADER_TEMPLATE
+  });
 }
 
 export function getScripts(): string {

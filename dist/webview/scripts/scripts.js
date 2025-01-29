@@ -2,7 +2,39 @@
 /******/ 	"use strict";
 /******/ 	var __webpack_modules__ = ({
 
-/***/ 24:
+/***/ 18:
+/***/ ((__unused_webpack_module, exports) => {
+
+
+Object.defineProperty(exports, "__esModule", ({ value: true }));
+exports.Notification = void 0;
+class Notification {
+    static render() {
+        return `
+      <div id="notification" class="notification" style="display: none;">
+        <span id="notificationMessage"></span>
+      </div>
+    `;
+    }
+    static show(message, type = 'success') {
+        const notification = document.getElementById('notification');
+        const messageEl = document.getElementById('notificationMessage');
+        if (!notification || !messageEl)
+            return;
+        messageEl.textContent = message;
+        notification.className = `notification ${type}`;
+        notification.style.display = 'block';
+        setTimeout(() => {
+            notification.style.display = 'none';
+        }, 3000);
+    }
+}
+exports.Notification = Notification;
+
+
+/***/ }),
+
+/***/ 27:
 /***/ ((__unused_webpack_module, exports) => {
 
 
@@ -17,6 +49,12 @@ class ExclusionController {
         this.initializeListeners();
         this.updateUI('project');
         this.updateUI('global');
+    }
+    getProjectExclusions() {
+        return this.enabledExclusions.get('project') || new Set();
+    }
+    getGlobalExclusions() {
+        return this.enabledExclusions.get('global') || new Set();
     }
     initializeListeners() {
         // Add pattern listeners
@@ -34,45 +72,7 @@ class ExclusionController {
                 });
             }
         });
-        // Remove pattern listeners
-        document.addEventListener('click', (e) => {
-            const target = e.target;
-            if (target.closest('.remove-btn')) {
-                const btn = target.closest('.remove-btn');
-                const pattern = btn.dataset.pattern;
-                const item = btn.closest('.exclusion-item');
-                const type = item.dataset.type;
-                if (pattern && type) {
-                    this.handlePatternRemove(type, pattern);
-                }
-            }
-        });
-        // Toggle pattern listeners
-        document.addEventListener('change', (e) => {
-            const target = e.target;
-            if (target.closest('.exclusion-item')) {
-                const checkbox = target;
-                const item = target.closest('.exclusion-item');
-                const type = item.dataset.type;
-                const pattern = checkbox.id.split('_')[1];
-                if (pattern && type) {
-                    this.handlePatternToggle(type, pattern, checkbox.checked);
-                }
-            }
-        });
-        // Generate button listener
-        const generateBtn = document.getElementById('generateBtn');
-        if (generateBtn) {
-            generateBtn.addEventListener('click', () => {
-                const headerTemplate = document.getElementById('headerTemplate')?.value || '';
-                this.postMessage({
-                    command: 'generate',
-                    projectExclusions: Array.from(this.enabledExclusions.get('project')),
-                    globalExclusions: Array.from(this.enabledExclusions.get('global')),
-                    headerTemplate
-                });
-            });
-        }
+        // Remove pattern listeners are now handled by individual buttons
     }
     handlePatternAdd(type, pattern) {
         if (this.validatePattern(pattern)) {
@@ -103,19 +103,39 @@ class ExclusionController {
     }
     updateUI(type) {
         const container = document.getElementById(`${type}ExclusionList`);
-        if (container) {
-            const patterns = Array.from(this.enabledExclusions.get(type));
-            container.innerHTML = patterns.map(p => this.renderExclusionItem(p, type)).join('');
-        }
-    }
-    renderExclusionItem(pattern, type) {
-        return `
-      <div class="exclusion-item" data-type="${type}">
-        <input type="checkbox" id="${type}_${pattern}" checked>
-        <label for="${type}_${pattern}">${pattern}</label>
-        <button class="remove-btn" data-pattern="${pattern}" title="Remove exclusion">×</button>
-      </div>
-    `;
+        if (!container)
+            return;
+        // Clear existing items
+        container.innerHTML = '';
+        // Add new items
+        const patterns = Array.from(this.enabledExclusions.get(type));
+        patterns.forEach(pattern => {
+            const itemDiv = document.createElement('div');
+            itemDiv.className = 'exclusion-item';
+            itemDiv.dataset.type = type;
+            const checkbox = document.createElement('input');
+            checkbox.type = 'checkbox';
+            checkbox.id = `${type}_${pattern}`;
+            checkbox.checked = true;
+            checkbox.addEventListener('change', () => {
+                this.handlePatternToggle(type, pattern, checkbox.checked);
+            });
+            const label = document.createElement('label');
+            label.htmlFor = `${type}_${pattern}`;
+            label.textContent = pattern;
+            const removeBtn = document.createElement('button');
+            removeBtn.className = 'remove-btn';
+            removeBtn.title = 'Remove exclusion';
+            removeBtn.dataset.pattern = pattern;
+            removeBtn.innerHTML = '×';
+            removeBtn.addEventListener('click', () => {
+                this.handlePatternRemove(type, pattern);
+            });
+            itemDiv.appendChild(checkbox);
+            itemDiv.appendChild(label);
+            itemDiv.appendChild(removeBtn);
+            container.appendChild(itemDiv);
+        });
     }
     emitUpdate() {
         this.postMessage({
@@ -136,29 +156,38 @@ exports.ExclusionController = ExclusionController;
 
 /***/ }),
 
-/***/ 26:
+/***/ 29:
 /***/ ((__unused_webpack_module, exports) => {
 
 
 Object.defineProperty(exports, "__esModule", ({ value: true }));
 exports.ProgressController = void 0;
 class ProgressController {
-    static initialize() {
+    static initialize(vscode) {
+        this.vscode = vscode;
         this.progressFill = document.getElementById('progressFill');
         this.progressStatus = document.getElementById('progressStatus');
         this.progressContainer = document.getElementById('progressContainer');
         this.generateBtn = document.getElementById('generateBtn');
-        if (!this.progressFill || !this.progressStatus || !this.progressContainer || !this.generateBtn) {
+        this.cancelBtn = document.getElementById('cancelBtn');
+        if (!this.progressFill || !this.progressStatus || !this.progressContainer || !this.generateBtn || !this.cancelBtn) {
             console.error('Progress elements not found');
             return;
         }
+        // Hide cancel button initially
+        this.cancelBtn.style.display = 'none';
         this.generateBtn.addEventListener('click', () => {
             this.showProgress();
+        });
+        this.cancelBtn.addEventListener('click', () => {
+            this.cancelGeneration();
         });
     }
     static update(value, status) {
         if (!this.progressFill || !this.progressStatus)
             return;
+        // Ensure progress container is visible during updates
+        this.showProgress();
         this.progressFill.style.width = `${value}%`;
         this.progressStatus.textContent = status;
         if (value >= 100) {
@@ -166,17 +195,26 @@ class ProgressController {
         }
     }
     static showProgress() {
-        if (!this.progressContainer || !this.generateBtn)
+        if (!this.progressContainer || !this.generateBtn || !this.cancelBtn)
             return;
         this.progressContainer.style.display = 'block';
-        this.generateBtn.disabled = true;
-        this.update(0, 'Starting...');
+        this.generateBtn.style.display = 'none';
+        this.cancelBtn.style.display = 'block';
     }
     static hideProgress() {
-        if (!this.progressContainer || !this.generateBtn)
+        if (!this.progressContainer || !this.generateBtn || !this.cancelBtn)
             return;
         this.progressContainer.style.display = 'none';
-        this.generateBtn.disabled = false;
+        this.generateBtn.style.display = 'block';
+        this.cancelBtn.style.display = 'none';
+    }
+    static cancelGeneration() {
+        if (!this.vscode)
+            return;
+        this.vscode.postMessage({
+            command: 'cancel'
+        });
+        this.hideProgress();
     }
 }
 exports.ProgressController = ProgressController;
@@ -184,11 +222,12 @@ ProgressController.progressFill = null;
 ProgressController.progressStatus = null;
 ProgressController.progressContainer = null;
 ProgressController.generateBtn = null;
+ProgressController.cancelBtn = null;
 
 
 /***/ }),
 
-/***/ 25:
+/***/ 28:
 /***/ ((__unused_webpack_module, exports) => {
 
 
@@ -196,21 +235,35 @@ Object.defineProperty(exports, "__esModule", ({ value: true }));
 exports.TabController = void 0;
 class TabController {
     static init() {
+        // Show initial tab
+        const initialTab = document.querySelector('.tab[data-tab="exclusions"]');
+        if (initialTab) {
+            this.switchTab(initialTab);
+        }
+        // Add click handlers
         document.querySelectorAll('.tab').forEach(tab => {
-            tab.addEventListener('click', () => {
-                const tabName = tab.getAttribute('data-tab');
-                if (!tabName)
-                    return;
-                // Update active states
-                document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
-                document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
-                tab.classList.add('active');
-                const content = document.querySelector(`.tab-content[data-tab="${tabName}"]`);
-                if (content) {
-                    content.classList.add('active');
-                }
+            tab.addEventListener('click', (e) => {
+                this.switchTab(e.currentTarget);
             });
         });
+    }
+    static switchTab(tab) {
+        const tabName = tab.getAttribute('data-tab');
+        if (!tabName)
+            return;
+        // Update active states
+        document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+        document.querySelectorAll('.tab-content').forEach(c => {
+            c.classList.remove('active');
+            c.style.display = 'none';
+        });
+        // Activate selected tab
+        tab.classList.add('active');
+        const content = document.querySelector(`.tab-content[data-tab="${tabName}"]`);
+        if (content) {
+            content.classList.add('active');
+            content.style.display = 'block';
+        }
     }
 }
 exports.TabController = TabController;
@@ -252,21 +305,32 @@ var exports = __webpack_exports__;
 
 Object.defineProperty(exports, "__esModule", ({ value: true }));
 exports.getScripts = getScripts;
-const ExclusionController_1 = __webpack_require__(24);
-const TabController_1 = __webpack_require__(25);
-const ProgressController_1 = __webpack_require__(26);
+const ExclusionController_1 = __webpack_require__(27);
+const TabController_1 = __webpack_require__(28);
+const ProgressController_1 = __webpack_require__(29);
+const Notification_1 = __webpack_require__(18);
+// Default header template
+const DEFAULT_HEADER_TEMPLATE = `# {projectName}
+Generated on: {date}
+Workspace: {workspacePath}
+
+## File Structure
+{fileTree}
+
+## Files
+{content}`;
 const vscode = acquireVsCodeApi();
 // Initialize controllers
 window.addEventListener('load', () => {
     const state = vscode.getState() || {
         projectExclusions: [],
         globalExclusions: [],
-        headerTemplate: ''
+        headerTemplate: DEFAULT_HEADER_TEMPLATE
     };
     // Initialize tab switching
     TabController_1.TabController.init();
     // Initialize progress tracking
-    ProgressController_1.ProgressController.initialize();
+    ProgressController_1.ProgressController.initialize(vscode);
     // Initialize exclusion management
     const exclusionController = new ExclusionController_1.ExclusionController((msg) => vscode.postMessage(msg), state.projectExclusions, state.globalExclusions);
     // Handle messages from extension
@@ -285,8 +349,44 @@ window.addEventListener('load', () => {
             case 'progress':
                 ProgressController_1.ProgressController.update(message.value, message.status);
                 break;
+            case 'cancelled':
+                ProgressController_1.ProgressController.update(0, 'Cancelled');
+                Notification_1.Notification.show('Generation cancelled', 'error');
+                break;
+            case 'saveSuccess':
+                Notification_1.Notification.show('Settings saved successfully');
+                break;
+            case 'error':
+                Notification_1.Notification.show(message.message, 'error');
+                break;
         }
     });
+    // Add generate button click handler
+    const generateBtn = document.getElementById('generateBtn');
+    if (generateBtn) {
+        generateBtn.addEventListener('click', () => {
+            const headerTemplate = document.getElementById('headerTemplate')?.value || DEFAULT_HEADER_TEMPLATE;
+            const projectExclusions = Array.from(exclusionController.getProjectExclusions());
+            const globalExclusions = Array.from(exclusionController.getGlobalExclusions());
+            vscode.postMessage({
+                command: 'generate',
+                projectExclusions,
+                globalExclusions,
+                headerTemplate
+            });
+        });
+    }
+    // Add reset storage button click handler
+    const resetStorageBtn = document.getElementById('resetStorageBtn');
+    if (resetStorageBtn) {
+        resetStorageBtn.addEventListener('click', () => {
+            if (confirm('Are you sure you want to reset all settings and exclusions? This cannot be undone.')) {
+                vscode.postMessage({
+                    command: 'resetStorage'
+                });
+            }
+        });
+    }
     // Request initial configuration
     vscode.postMessage({ command: 'getConfig' });
 });
@@ -294,10 +394,16 @@ function updateUI(config) {
     // Update header template
     const headerTemplate = document.getElementById('headerTemplate');
     if (headerTemplate) {
-        headerTemplate.value = config.headerTemplate || '';
+        headerTemplate.value = config.headerTemplate || DEFAULT_HEADER_TEMPLATE;
     }
     // Update exclusions
     const exclusionController = new ExclusionController_1.ExclusionController((msg) => vscode.postMessage(msg), config.projectExclusions || [], config.globalExclusions || []);
+    // Save state
+    vscode.setState({
+        projectExclusions: config.projectExclusions || [],
+        globalExclusions: config.globalExclusions || [],
+        headerTemplate: config.headerTemplate || DEFAULT_HEADER_TEMPLATE
+    });
 }
 function getScripts() {
     return `

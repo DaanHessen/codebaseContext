@@ -13,6 +13,14 @@ export class ExclusionController {
     this.updateUI('global');
   }
 
+  getProjectExclusions(): Set<string> {
+    return this.enabledExclusions.get('project') || new Set();
+  }
+
+  getGlobalExclusions(): Set<string> {
+    return this.enabledExclusions.get('global') || new Set();
+  }
+
   private initializeListeners() {
     // Add pattern listeners
     ['project', 'global'].forEach(type => {
@@ -30,47 +38,7 @@ export class ExclusionController {
       }
     });
 
-    // Remove pattern listeners
-    document.addEventListener('click', (e) => {
-      const target = e.target as HTMLElement;
-      if (target.closest('.remove-btn')) {
-        const btn = target.closest('.remove-btn') as HTMLElement;
-        const pattern = btn.dataset.pattern;
-        const item = btn.closest('.exclusion-item') as HTMLElement;
-        const type = item.dataset.type as 'project'|'global';
-        if (pattern && type) {
-          this.handlePatternRemove(type, pattern);
-        }
-      }
-    });
-
-    // Toggle pattern listeners
-    document.addEventListener('change', (e) => {
-      const target = e.target as HTMLElement;
-      if (target.closest('.exclusion-item')) {
-        const checkbox = target as HTMLInputElement;
-        const item = target.closest('.exclusion-item') as HTMLElement;
-        const type = item.dataset.type as 'project'|'global';
-        const pattern = checkbox.id.split('_')[1];
-        if (pattern && type) {
-          this.handlePatternToggle(type, pattern, checkbox.checked);
-        }
-      }
-    });
-
-    // Generate button listener
-    const generateBtn = document.getElementById('generateBtn');
-    if (generateBtn) {
-      generateBtn.addEventListener('click', () => {
-        const headerTemplate = (document.getElementById('headerTemplate') as HTMLTextAreaElement)?.value || '';
-        this.postMessage({
-          command: 'generate',
-          projectExclusions: Array.from(this.enabledExclusions.get('project')!),
-          globalExclusions: Array.from(this.enabledExclusions.get('global')!),
-          headerTemplate
-        });
-      });
-    }
+    // Remove pattern listeners are now handled by individual buttons
   }
 
   handlePatternAdd(type: 'project'|'global', pattern: string) {
@@ -105,20 +73,44 @@ export class ExclusionController {
 
   private updateUI(type: 'project'|'global') {
     const container = document.getElementById(`${type}ExclusionList`);
-    if (container) {
-      const patterns = Array.from(this.enabledExclusions.get(type)!);
-      container.innerHTML = patterns.map(p => this.renderExclusionItem(p, type)).join('');
-    }
-  }
+    if (!container) return;
 
-  private renderExclusionItem(pattern: string, type: string): string {
-    return `
-      <div class="exclusion-item" data-type="${type}">
-        <input type="checkbox" id="${type}_${pattern}" checked>
-        <label for="${type}_${pattern}">${pattern}</label>
-        <button class="remove-btn" data-pattern="${pattern}" title="Remove exclusion">×</button>
-      </div>
-    `;
+    // Clear existing items
+    container.innerHTML = '';
+
+    // Add new items
+    const patterns = Array.from(this.enabledExclusions.get(type)!);
+    patterns.forEach(pattern => {
+      const itemDiv = document.createElement('div');
+      itemDiv.className = 'exclusion-item';
+      itemDiv.dataset.type = type;
+
+      const checkbox = document.createElement('input');
+      checkbox.type = 'checkbox';
+      checkbox.id = `${type}_${pattern}`;
+      checkbox.checked = true;
+      checkbox.addEventListener('change', () => {
+        this.handlePatternToggle(type, pattern, checkbox.checked);
+      });
+
+      const label = document.createElement('label');
+      label.htmlFor = `${type}_${pattern}`;
+      label.textContent = pattern;
+
+      const removeBtn = document.createElement('button');
+      removeBtn.className = 'remove-btn';
+      removeBtn.title = 'Remove exclusion';
+      removeBtn.dataset.pattern = pattern;
+      removeBtn.innerHTML = '×';
+      removeBtn.addEventListener('click', () => {
+        this.handlePatternRemove(type, pattern);
+      });
+
+      itemDiv.appendChild(checkbox);
+      itemDiv.appendChild(label);
+      itemDiv.appendChild(removeBtn);
+      container.appendChild(itemDiv);
+    });
   }
 
   private emitUpdate() {

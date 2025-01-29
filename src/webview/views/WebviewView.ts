@@ -1,6 +1,8 @@
 import { ProgressBar } from '../components/Progress/ProgressBar';
 import { ExclusionsTab } from '../components/Exclusions/ExclusionsTab';
-import { GeneralTab } from '../components/General/GeneralTab';
+import { SettingsTab } from '../components/Settings/SettingsTab';
+import { GenerateButton } from '../components/Shared/Button';
+import { Notification } from '../components/Shared/Notification';
 import * as vscode from 'vscode';
 
 export class WebviewView {
@@ -29,9 +31,10 @@ export class WebviewView {
             ${this.renderTabs()}
             <div class="content">
               ${ExclusionsTab.render(projectExclusions, globalExclusions)}
-              ${GeneralTab.render(headerTemplate)}
+              ${SettingsTab.render(headerTemplate)}
               ${ProgressBar.render()}
-              <button id="generateBtn" class="generate-button">Generate Context</button>
+              ${Notification.render()}
+              ${GenerateButton.render()}
             </div>
           </div>
           <script nonce="${nonce}" src="${scriptUri}"></script>
@@ -43,7 +46,7 @@ export class WebviewView {
   private static renderTabs(): string {
     return `
       <div class="tabs">
-        <button class="tab active" data-tab="exclusions">Exclusions</button>
+        <button class="tab" data-tab="exclusions">Exclusions</button>
         <button class="tab" data-tab="settings">Settings</button>
       </div>
     `;

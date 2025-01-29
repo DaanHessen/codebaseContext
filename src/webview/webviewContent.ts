@@ -2,6 +2,7 @@ import * as vscode from 'vscode';
 import { WebviewView } from './views/WebviewView';
 import { getNonce } from '../utils/getNonce';
 import { styles } from './styles/index';
+import { DEFAULT_HEADER_TEMPLATE } from '../utils/defaultConfig';
 
 export function getWebviewContent(
   webview: vscode.Webview, 
@@ -21,7 +22,7 @@ export function getWebviewContent(
     webview,
     config.projectExclusions,
     config.globalExclusions,
-    config.headerTemplate,
+    config.headerTemplate || DEFAULT_HEADER_TEMPLATE,
     nonce,
     styles,
     scriptUri

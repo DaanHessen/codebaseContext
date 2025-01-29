@@ -1,9 +1,23 @@
 import * as vscode from 'vscode';
 import { generateContext } from './contextGenerator';
 import { getWebviewContent } from './webview/webviewContent';
+import { DEFAULT_GLOBAL_EXCLUSIONS, DEFAULT_HEADER_TEMPLATE, resetConfiguration } from './utils/defaultConfig';
 
-export function activate(context: vscode.ExtensionContext) {
+export async function activate(context: vscode.ExtensionContext) {
     console.log('Activating Codebase Context Generator extension');
+
+    // Initialize default global exclusions if not set
+    const config = vscode.workspace.getConfiguration('codebaseContext');
+    const globalExclusions = config.get<string[]>('globalExclusions');
+    
+    if (!globalExclusions || globalExclusions.length === 0) {
+        try {
+            await resetConfiguration(vscode);
+            console.log('Default global exclusions initialized');
+        } catch (error) {
+            console.error('Error initializing default global exclusions:', error);
+        }
+    }
 
     // Register the sidebar webview provider
     const provider = new ContextGeneratorViewProvider(context.extensionUri);
@@ -24,6 +38,7 @@ export function activate(context: vscode.ExtensionContext) {
 
 class ContextGeneratorViewProvider implements vscode.WebviewViewProvider {
     private _view?: vscode.WebviewView;
+    private _cancellationTokenSource?: vscode.CancellationTokenSource;
 
     constructor(
         private readonly _extensionUri: vscode.Uri,
@@ -67,6 +82,14 @@ class ContextGeneratorViewProvider implements vscode.WebviewViewProvider {
                         await this._handleFilePicker(data.isGlobal);
                         break;
                     }
+                    case 'cancel': {
+                        this._cancelGeneration();
+                        break;
+                    }
+                    case 'resetStorage': {
+                        await this._resetStorage();
+                        break;
+                    }
                 }
             });
 
@@ -88,6 +111,9 @@ class ContextGeneratorViewProvider implements vscode.WebviewViewProvider {
             if (!workspaceFolder) {
                 throw new Error('No workspace folder found');
             }
+
+            // Create new cancellation token source
+            this._cancellationTokenSource = new vscode.CancellationTokenSource();
 
             await this._postMessage({ type: 'progress', value: 0, status: 'Starting generation...' });
 
@@ -113,7 +139,8 @@ class ContextGeneratorViewProvider implements vscode.WebviewViewProvider {
                     onProgress: (progress: number, status: string) => {
                         this._postMessage({ type: 'progress', value: 20 + (progress * 0.8), status });
                     }
-                }
+                },
+                this._cancellationTokenSource.token
             );
 
             // Create and show output document
@@ -129,9 +156,17 @@ class ContextGeneratorViewProvider implements vscode.WebviewViewProvider {
             await this._postMessage({ type: 'progress', value: 100, status: 'Complete!' });
             vscode.window.showInformationMessage('Context generated and copied to clipboard!');
         } catch (error) {
-            console.error('Error generating context:', error);
-            vscode.window.showErrorMessage(`Failed to generate context: ${error}`);
-            await this._postMessage({ type: 'error', message: `${error}` });
+            if (error instanceof vscode.CancellationError) {
+                await this._postMessage({ type: 'cancelled' });
+                vscode.window.showInformationMessage('Generation cancelled');
+            } else {
+                console.error('Error generating context:', error);
+                vscode.window.showErrorMessage(`Failed to generate context: ${error}`);
+                await this._postMessage({ type: 'error', message: `${error}` });
+            }
+        } finally {
+            this._cancellationTokenSource?.dispose();
+            this._cancellationTokenSource = undefined;
         }
     }
 
@@ -263,6 +298,34 @@ class ContextGeneratorViewProvider implements vscode.WebviewViewProvider {
         } catch (error) {
             console.error('Error generating webview content:', error);
             throw error;
+        }
+    }
+
+    private _cancelGeneration() {
+        if (this._cancellationTokenSource) {
+            this._cancellationTokenSource.cancel();
+        }
+    }
+
+    private async _resetStorage() {
+        try {
+            await resetConfiguration(vscode);
+
+            // Reset webview state with default exclusions
+            if (this._view) {
+                this._view.webview.postMessage({
+                    type: 'config',
+                    projectExclusions: [],
+                    globalExclusions: DEFAULT_GLOBAL_EXCLUSIONS,
+                    headerTemplate: DEFAULT_HEADER_TEMPLATE,
+                    useRelativePaths: true
+                });
+            }
+
+            vscode.window.showInformationMessage('Storage reset successfully with default exclusions');
+        } catch (error) {
+            console.error('Error resetting storage:', error);
+            vscode.window.showErrorMessage(`Failed to reset storage: ${error}`);
         }
     }
 }
