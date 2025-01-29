@@ -21,6 +21,11 @@ export class ExclusionController {
     return this.enabledExclusions.get('global') || new Set();
   }
 
+  setExclusions(type: 'project' | 'global', exclusions: string[]) {
+    this.enabledExclusions.set(type, new Set(exclusions));
+    this.updateUI(type);
+  }
+
   private initializeListeners() {
     // Add pattern listeners
     ['project', 'global'].forEach(type => {
@@ -68,7 +73,7 @@ export class ExclusionController {
   }
 
   private validatePattern(pattern: string): boolean {
-    return pattern.length > 0 && /^[^<>:"|?*]+$/.test(pattern);
+    return pattern.length > 0 && /^[^<>"|?*]+$/.test(pattern);
   }
 
   private updateUI(type: 'project'|'global') {
@@ -79,7 +84,7 @@ export class ExclusionController {
     container.innerHTML = '';
 
     // Add new items
-    const patterns = Array.from(this.enabledExclusions.get(type)!);
+    const patterns = Array.from(this.enabledExclusions.get(type)!).sort();
     patterns.forEach(pattern => {
       const itemDiv = document.createElement('div');
       itemDiv.className = 'exclusion-item';

@@ -56,6 +56,10 @@ class ExclusionController {
     getGlobalExclusions() {
         return this.enabledExclusions.get('global') || new Set();
     }
+    setExclusions(type, exclusions) {
+        this.enabledExclusions.set(type, new Set(exclusions));
+        this.updateUI(type);
+    }
     initializeListeners() {
         // Add pattern listeners
         ['project', 'global'].forEach(type => {
@@ -99,7 +103,7 @@ class ExclusionController {
         this.emitUpdate();
     }
     validatePattern(pattern) {
-        return pattern.length > 0 && /^[^<>:"|?*]+$/.test(pattern);
+        return pattern.length > 0 && /^[^<>"|?*]+$/.test(pattern);
     }
     updateUI(type) {
         const container = document.getElementById(`${type}ExclusionList`);
@@ -108,7 +112,7 @@ class ExclusionController {
         // Clear existing items
         container.innerHTML = '';
         // Add new items
-        const patterns = Array.from(this.enabledExclusions.get(type));
+        const patterns = Array.from(this.enabledExclusions.get(type)).sort();
         patterns.forEach(pattern => {
             const itemDiv = document.createElement('div');
             itemDiv.className = 'exclusion-item';
@@ -396,7 +400,7 @@ function updateUI(config) {
     if (headerTemplate) {
         headerTemplate.value = config.headerTemplate || DEFAULT_HEADER_TEMPLATE;
     }
-    // Update exclusions
+    // Get the exclusion controller instance
     const exclusionController = new ExclusionController_1.ExclusionController((msg) => vscode.postMessage(msg), config.projectExclusions || [], config.globalExclusions || []);
     // Save state
     vscode.setState({
@@ -404,6 +408,13 @@ function updateUI(config) {
         globalExclusions: config.globalExclusions || [],
         headerTemplate: config.headerTemplate || DEFAULT_HEADER_TEMPLATE
     });
+    // Update UI with new exclusions
+    if (config.projectExclusions) {
+        exclusionController.setExclusions('project', config.projectExclusions);
+    }
+    if (config.globalExclusions) {
+        exclusionController.setExclusions('global', config.globalExclusions);
+    }
 }
 function getScripts() {
     return `

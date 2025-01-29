@@ -24,75 +24,32 @@ export const DEFAULT_GLOBAL_EXCLUSIONS = [
     'target',
     '.cache',
     '__pycache__',
-    '*.pyc',
+    '.pyc',
     
     // IDE and editor files
     '.idea',
     '.vscode',
     '.vs',
-    '*.swp',
-    '*.swo',
-    '*~',
-    
-    // Logs and temporary files
-    'logs',
-    '*.log',
-    'npm-debug.log*',
-    'yarn-debug.log*',
-    'yarn-error.log*',
-    'temp',
-    'tmp',
-    
-    // Test coverage and reports
-    'coverage',
-    '.nyc_output',
-    '.coverage',
-    'htmlcov',
+    '.swp',
+    '.~',
     
     // Lock files and checksums
-    '*.lock',
+    '.lock',
     'package-lock.json',
     'yarn.lock',
     'composer.lock',
-    '*.sum',
+    '.sum',
     
     // System files
     '.DS_Store',
     'Thumbs.db',
-    'desktop.ini',
     
-    // Minified files
-    '*.min.js',
-    '*.min.css',
-    
-    // Documentation
-    'docs',
-    'doc',
-    'documentation',
-    '*.pdf',
-    '*.md',
+    // License
     'LICENSE*',
-    'README*',
+
     
-    // Media and binary files
-    '*.jpg',
-    '*.jpeg',
-    '*.png',
-    '*.gif',
-    '*.ico',
-    '*.svg',
-    '*.woff',
-    '*.woff2',
-    '*.ttf',
-    '*.eot',
-    '*.mp3',
-    '*.mp4',
-    '*.mov',
-    '*.wav',
-    '*.zip',
-    '*.tar',
-    '*.gz',
-    '*.rar'
+    // Binary files
+    '.exe',
 ];
 
 export const DEFAULT_HEADER_TEMPLATE = `# {projectName}

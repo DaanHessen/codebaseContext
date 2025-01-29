@@ -113,7 +113,7 @@ function updateUI(config: any) {
     headerTemplate.value = config.headerTemplate || DEFAULT_HEADER_TEMPLATE;
   }
 
-  // Update exclusions
+  // Get the exclusion controller instance
   const exclusionController = new ExclusionController(
     (msg) => vscode.postMessage(msg),
     config.projectExclusions || [],
@@ -126,6 +126,14 @@ function updateUI(config: any) {
     globalExclusions: config.globalExclusions || [],
     headerTemplate: config.headerTemplate || DEFAULT_HEADER_TEMPLATE
   });
+
+  // Update UI with new exclusions
+  if (config.projectExclusions) {
+    exclusionController.setExclusions('project', config.projectExclusions);
+  }
+  if (config.globalExclusions) {
+    exclusionController.setExclusions('global', config.globalExclusions);
+  }
 }
 
 export function getScripts(): string {

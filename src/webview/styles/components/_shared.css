@@ -104,11 +104,20 @@ textarea {
   background: var(--vscode-input-background);
   color: var(--vscode-input-foreground);
   border-radius: 2px;
+  font-family: var(--vscode-editor-font-family);
+  font-size: var(--vscode-editor-font-size);
 }
 
 textarea {
-  min-height: 100px;
+  min-height: 150px;
   resize: vertical;
+  line-height: 1.4;
+  tab-size: 2;
+}
+
+textarea:focus {
+  outline: 1px solid var(--vscode-focusBorder);
+  outline-offset: -1px;
 }
 
 /* Generate button */

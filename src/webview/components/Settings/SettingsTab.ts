@@ -15,7 +15,10 @@ export class SettingsTab {
             </ul>
           </div>
           <div class="section-content">
-            <textarea id="headerTemplate" placeholder="Enter header template...">${headerTemplate}</textarea>
+            <textarea id="headerTemplate" 
+                      placeholder="Enter header template..." 
+                      spellcheck="false" 
+                      rows="10">${headerTemplate}</textarea>
           </div>
         </div>
         <div class="section">
