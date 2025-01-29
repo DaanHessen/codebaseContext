@@ -255,7 +255,11 @@ class ContextGeneratorViewProvider implements vscode.WebviewViewProvider {
 
     private _getHtmlForWebview(webview: vscode.Webview) {
         try {
-            return getWebviewContent(webview, this._extensionUri);
+            return getWebviewContent(webview, this._extensionUri, {
+                projectExclusions: [],  // These will be populated via messages
+                globalExclusions: [],   // These will be populated via messages
+                headerTemplate: ''      // This will be populated via messages
+            });
         } catch (error) {
             console.error('Error generating webview content:', error);
             throw error;
