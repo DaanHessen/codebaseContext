@@ -4,7 +4,7 @@ import { getExclusionsTab } from './components/ExclusionsTab';
 import { getStyles } from './styles/styles';
 import { getScripts } from './scripts/scripts';
 
-export function getWebviewContent(webview: vscode.Webview): string {
+export function getWebviewContent(webview: vscode.Webview, extensionUri: vscode.Uri): string {
     if (!webview) {
         throw new Error('Webview is required');
     }
@@ -19,6 +19,7 @@ export function getWebviewContent(webview: vscode.Webview): string {
         <meta name="viewport" content="width=device-width, initial-scale=1.0">
         <meta http-equiv="Content-Security-Policy" content="default-src 'none'; style-src ${cspSource} 'unsafe-inline'; script-src ${cspSource} 'nonce-${nonce}' 'unsafe-inline'; font-src ${cspSource} 'self' data:; img-src ${cspSource} 'self' data:; connect-src ${cspSource} 'self' https:; frame-src ${cspSource} 'self'; base-uri 'none'; form-action 'none';">
         <title>Codebase Context Generator</title>
+        <link href="${webview.asWebviewUri(vscode.Uri.joinPath(extensionUri, 'node_modules', '@vscode/codicons', 'dist', 'codicon.css'))}" rel="stylesheet" />
         <style nonce="${nonce}">
             ${getStyles()}
         </style>
@@ -52,7 +53,7 @@ export function getWebviewContent(webview: vscode.Webview): string {
                 <div class="section">
                     <div class="section-header">Global Exclusions</div>
                     <div class="section-description">
-                        These exclusions apply to all projects.
+                        Allows you to exclude files from the context generation process. These exclusions apply to all projects.
                     </div>
                     <div class="section-content">
                         <div class="add-exclusion">

@@ -5,6 +5,8 @@ export function getScripts(): string {
         let projectExclusions = [];
         let globalExclusions = [];
         let initialized = false;
+        let enabledProjectExclusions = new Set();
+        let enabledGlobalExclusions = new Set();
 
         // Ensure vscode API is available
         try {
@@ -115,6 +117,8 @@ export function getScripts(): string {
 
                     if (!projectExclusions.includes(pattern)) {
                         addProjectExclusion(pattern);
+                        enabledProjectExclusions.add(pattern);
+                        autoSave();
                     }
                 }
             });
@@ -137,6 +141,8 @@ export function getScripts(): string {
 
                     if (!globalExclusions.includes(pattern)) {
                         addGlobalExclusion(pattern);
+                        enabledGlobalExclusions.add(pattern);
+                        autoSave();
                     }
                 }
             });
@@ -166,6 +172,11 @@ export function getScripts(): string {
             }
             projectExclusions = config.projectExclusions || [];
             globalExclusions = config.globalExclusions || [];
+            
+            // Initialize enabled sets with all exclusions
+            enabledProjectExclusions = new Set(projectExclusions);
+            enabledGlobalExclusions = new Set(globalExclusions);
+            
             updateExclusionList('project');
             updateExclusionList('global');
         }
@@ -175,13 +186,14 @@ export function getScripts(): string {
             if (!list) return;
 
             const exclusions = type === 'project' ? projectExclusions : globalExclusions;
+            const enabledSet = type === 'project' ? enabledProjectExclusions : enabledGlobalExclusions;
             list.innerHTML = '';
 
             exclusions.forEach((pattern, index) => {
                 const item = document.createElement('div');
                 item.className = 'exclusion-item';
                 item.innerHTML = \`
-                    <input type="checkbox" checked>
+                    <input type="checkbox" \${enabledSet.has(pattern) ? 'checked' : ''}>
                     <span>\${pattern}</span>
                     <button class="remove-btn" aria-label="Remove exclusion">
                         <i class="codicon codicon-close"></i>
@@ -191,14 +203,32 @@ export function getScripts(): string {
                 const checkbox = item.querySelector('input[type="checkbox"]');
                 const removeBtn = item.querySelector('.remove-btn');
                 
-                checkbox?.addEventListener('change', autoSave);
+                checkbox?.addEventListener('change', (e) => {
+                    if (e.target.checked) {
+                        if (type === 'project') {
+                            enabledProjectExclusions.add(pattern);
+                        } else {
+                            enabledGlobalExclusions.add(pattern);
+                        }
+                    } else {
+                        if (type === 'project') {
+                            enabledProjectExclusions.delete(pattern);
+                        } else {
+                            enabledGlobalExclusions.delete(pattern);
+                        }
+                    }
+                    autoSave();
+                });
+
                 removeBtn?.addEventListener('click', (e) => {
                     e.preventDefault();
                     e.stopPropagation();
                     if (type === 'project') {
                         projectExclusions.splice(index, 1);
+                        enabledProjectExclusions.delete(pattern);
                     } else {
                         globalExclusions.splice(index, 1);
+                        enabledGlobalExclusions.delete(pattern);
                     }
                     updateExclusionList(type);
                     autoSave();
@@ -209,13 +239,9 @@ export function getScripts(): string {
         }
 
         function getEnabledExclusions(type) {
-            const list = document.getElementById(type === 'project' ? 'projectExclusionList' : 'globalExclusionList');
-            const exclusions = type === 'project' ? projectExclusions : globalExclusions;
-            
-            return exclusions.filter((_, index) => {
-                const checkbox = list?.children[index]?.querySelector('input[type="checkbox"]');
-                return checkbox?.checked ?? false;
-            });
+            return type === 'project' 
+                ? Array.from(enabledProjectExclusions)
+                : Array.from(enabledGlobalExclusions);
         }
 
         function updateProgress(value, status) {
@@ -248,42 +274,39 @@ export function getScripts(): string {
         }
 
         function autoSave() {
-            const config = {
-                headerTemplate: document.getElementById('headerTemplate')?.value || '',
-                projectExclusions,
-                globalExclusions
-            };
+            vscode.postMessage({
+                command: 'saveConfig',
+                config: {
+                    projectExclusions: Array.from(enabledProjectExclusions),
+                    globalExclusions: Array.from(enabledGlobalExclusions),
+                    headerTemplate: document.getElementById('headerTemplate')?.value || '',
+                    useRelativePaths: true
+                }
+            });
+        }
 
-            vscode.postMessage({ command: 'saveConfig', config });
+        function showError(message, type = 'project') {
+            const errorElement = document.getElementById(type + 'ErrorMessage');
+            if (!errorElement) return;
+
+            errorElement.textContent = message;
+            errorElement.style.display = 'block';
+            
+            setTimeout(() => {
+                errorElement.style.display = 'none';
+            }, 5000);
         }
 
         function addProjectExclusion(pattern) {
             projectExclusions.push(pattern);
+            document.getElementById('newProjectPattern').value = '';
             updateExclusionList('project');
-            const input = document.getElementById('newProjectPattern');
-            if (input) input.value = '';
-            autoSave();
         }
 
         function addGlobalExclusion(pattern) {
             globalExclusions.push(pattern);
+            document.getElementById('newGlobalPattern').value = '';
             updateExclusionList('global');
-            const input = document.getElementById('newGlobalPattern');
-            if (input) input.value = '';
-            autoSave();
-        }
-
-        function showError(message, type = 'project') {
-            const errorElement = document.getElementById(\`\${type}ErrorMessage\`);
-            if (errorElement) {
-                errorElement.textContent = message;
-                errorElement.style.display = 'block';
-                setTimeout(() => {
-                    errorElement.style.display = 'none';
-                }, 5000);
-            } else {
-                showNotification(message, 'error');
-            }
         }
     `;
 } 

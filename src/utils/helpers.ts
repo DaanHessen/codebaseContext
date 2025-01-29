@@ -11,15 +11,25 @@ export function shouldExcludeFile(filePath: string, excludePatterns: string[]): 
     
     return excludePatterns.some(pattern => {
         try {
-            // Normalize pattern and handle escaped characters
-            const normalizedPattern = pattern
-                .replace(/\\/g, '/') // Normalize slashes
-                .replace(/\\\*/g, '*') // Unescape asterisks
-                .replace(/\\\?/g, '?') // Unescape question marks
-                .replace(/\\\[/g, '[') // Unescape square brackets
-                .replace(/\\\]/g, ']'); // Unescape square brackets
-            
-            // Use minimatch for proper glob pattern matching
+            // Normalize pattern
+            let normalizedPattern = pattern.replace(/\\/g, '/');
+
+            // If pattern starts with '/', make it relative to workspace root
+            if (normalizedPattern.startsWith('/')) {
+                normalizedPattern = normalizedPattern.substring(1);
+            }
+
+            // If pattern doesn't include '**' and ends with '/**', add it
+            if (!normalizedPattern.includes('**') && normalizedPattern.endsWith('/')) {
+                normalizedPattern += '**';
+            }
+
+            // If pattern is a file extension, make it match files with that extension anywhere
+            if (normalizedPattern.startsWith('.') && !normalizedPattern.includes('/')) {
+                normalizedPattern = `**/*${normalizedPattern}`;
+            }
+
+            // Use minimatch for glob pattern matching
             return minimatch(normalizedPath, normalizedPattern, {
                 dot: true,           // Match dot files
                 matchBase: true,     // Match basename if pattern has no slashes
