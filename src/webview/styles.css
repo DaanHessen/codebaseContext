@@ -1,0 +1,36 @@
+/* Add these styles to fix layout issues */
+.tab-nav {
+  display: flex;
+  gap: 1rem;
+  margin-bottom: 1.5rem;
+}
+
+.tab-btn {
+  padding: 0.5rem 1rem;
+  border: none;
+  background: none;
+  cursor: pointer;
+  border-bottom: 2px solid transparent;
+}
+
+.tab-btn.active {
+  border-color: #007acc;
+  font-weight: 600;
+}
+
+.exclusions-list .scroll-container {
+  max-height: 400px;
+  overflow-y: auto;
+  border: 1px solid #e1e4e8;
+  border-radius: 4px;
+  padding: 0.5rem;
+}
+
+.exclusion-item {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.25rem 0;
+  font-family: monospace;
+  font-size: 0.9em;
+} 
