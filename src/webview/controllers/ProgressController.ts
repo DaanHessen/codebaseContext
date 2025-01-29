@@ -10,41 +10,39 @@ export class ProgressController {
     this.progressContainer = document.getElementById('progressContainer');
     this.generateBtn = document.getElementById('generateBtn') as HTMLButtonElement;
 
-    if (this.generateBtn) {
-      this.generateBtn.addEventListener('click', () => {
-        this.showProgress();
-        this.generateBtn!.disabled = true;
-        window.postMessage({ type: 'generate' }, '*');
-      });
+    if (!this.progressFill || !this.progressStatus || !this.progressContainer || !this.generateBtn) {
+      console.error('Progress elements not found');
+      return;
     }
+
+    this.generateBtn.addEventListener('click', () => {
+      this.showProgress();
+    });
   }
 
   static update(value: number, status: string) {
-    if (this.progressFill) {
-      this.progressFill.style.width = `${value}%`;
-    }
-    if (this.progressStatus) {
-      this.progressStatus.textContent = status;
-    }
+    if (!this.progressFill || !this.progressStatus) return;
+
+    this.progressFill.style.width = `${value}%`;
+    this.progressStatus.textContent = status;
     
-    if (value === 100) {
+    if (value >= 100) {
       setTimeout(() => this.hideProgress(), 2000);
     }
   }
 
   private static showProgress() {
-    if (this.progressContainer) {
-      this.progressContainer.style.display = 'block';
-      this.update(0, 'Starting...');
-    }
+    if (!this.progressContainer || !this.generateBtn) return;
+
+    this.progressContainer.style.display = 'block';
+    this.generateBtn.disabled = true;
+    this.update(0, 'Starting...');
   }
 
   private static hideProgress() {
-    if (this.progressContainer) {
-      this.progressContainer.style.display = 'none';
-    }
-    if (this.generateBtn) {
-      this.generateBtn.disabled = false;
-    }
+    if (!this.progressContainer || !this.generateBtn) return;
+
+    this.progressContainer.style.display = 'none';
+    this.generateBtn.disabled = false;
   }
 } 

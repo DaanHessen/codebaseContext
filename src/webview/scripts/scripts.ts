@@ -45,6 +45,9 @@ window.addEventListener('load', () => {
       case 'config':
         updateUI(message);
         break;
+      case 'progress':
+        ProgressController.update(message.value, message.status);
+        break;
     }
   });
 

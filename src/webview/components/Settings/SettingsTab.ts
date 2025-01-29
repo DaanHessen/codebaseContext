@@ -1,7 +1,7 @@
 export class SettingsTab {
   static render(headerTemplate: string = ''): string {
     return `
-      <div class="tab-content" data-tab="settings">
+      <div class="tab-content" data-tab="settings" style="display: none;">
         <div class="section">
           <div class="section-header">Header Template</div>
           <div class="section-description">
@@ -9,7 +9,7 @@ export class SettingsTab {
             This template will be automatically inserted at the top of each file.
           </div>
           <div class="section-content">
-            <textarea id="headerTemplate" placeholder="Enter header template...">${headerTemplate}</textarea>
+            <textarea id="headerTemplate" rows="10" placeholder="Enter header template...">${headerTemplate}</textarea>
           </div>
         </div>
       </div>

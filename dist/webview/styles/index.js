@@ -56,7 +56,7 @@ module.exports = "/* Exclusions list */\r\n.exclusion-list {\r\n  max-height: 20
 /***/ 22:
 /***/ ((module) => {
 
-module.exports = "/* Progress bar */\r\n.progress-container {\r\n  display: none;\r\n  margin: 1rem 0;\r\n}\r\n\r\n.progress-bar {\r\n  width: 100%;\r\n  height: 4px;\r\n  background: var(--vscode-progressBar-background);\r\n  border-radius: 2px;\r\n  overflow: hidden;\r\n}\r\n\r\n.progress-fill {\r\n  height: 100%;\r\n  width: 0;\r\n  background: var(--vscode-progressBar-foreground);\r\n  transition: width 0.3s ease;\r\n}\r\n\r\n.progress-status {\r\n  margin-top: 0.5rem;\r\n  font-size: 0.9em;\r\n  color: var(--vscode-descriptionForeground);\r\n} ";
+module.exports = "/* Progress bar */\n.progress-container {\n  display: none;\n  margin: 1rem 0;\n}\n\n.progress-bar {\n  width: 100%;\n  height: 4px;\n  background: var(--vscode-progressBar-background);\n  border-radius: 2px;\n  overflow: hidden;\n}\n\n.progress-fill {\n  height: 100%;\n  width: 0;\n  background: var(--vscode-progressBar-foreground);\n  transition: width 0.3s ease;\n}\n\n.progress-status {\n  margin-top: 0.5rem;\n  font-size: 0.9em;\n  color: var(--vscode-descriptionForeground);\n} ";
 
 /***/ }),
 
