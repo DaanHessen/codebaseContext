@@ -10,15 +10,28 @@ export function shouldExcludeFile(filePath: string, excludePatterns: string[]): 
     const normalizedPath = filePath.replace(/\\/g, '/');
     
     return excludePatterns.some(pattern => {
-        // Normalize pattern
-        const normalizedPattern = pattern.replace(/\\/g, '/');
-        
-        // Use minimatch for proper glob pattern matching
-        return minimatch(normalizedPath, normalizedPattern, {
-            dot: true,           // Match dot files
-            matchBase: true,     // Match basename if pattern has no slashes
-            nocase: true,        // Case insensitive matching
-        });
+        try {
+            // Normalize pattern and handle escaped characters
+            const normalizedPattern = pattern
+                .replace(/\\/g, '/') // Normalize slashes
+                .replace(/\\\*/g, '*') // Unescape asterisks
+                .replace(/\\\?/g, '?') // Unescape question marks
+                .replace(/\\\[/g, '[') // Unescape square brackets
+                .replace(/\\\]/g, ']'); // Unescape square brackets
+            
+            // Use minimatch for proper glob pattern matching
+            return minimatch(normalizedPath, normalizedPattern, {
+                dot: true,           // Match dot files
+                matchBase: true,     // Match basename if pattern has no slashes
+                nocase: true,        // Case insensitive matching
+                noglobstar: false,   // Support ** for matching across directories
+                nonull: false,       // Don't match null if there are no matches
+                flipNegate: false    // Don't flip negation
+            });
+        } catch (error) {
+            console.error(`Error matching pattern ${pattern}:`, error);
+            return false;
+        }
     });
 }
 
@@ -85,6 +98,8 @@ export function getLanguageId(fileName: string): string {
         '.java': 'java',
         '.cpp': 'cpp',
         '.c': 'c',
+        '.h': 'c',
+        '.hpp': 'cpp',
         '.cs': 'csharp',
         '.go': 'go',
         '.rs': 'rust',
@@ -101,7 +116,16 @@ export function getLanguageId(fileName: string): string {
         '.xml': 'xml',
         '.yaml': 'yaml',
         '.yml': 'yaml',
-        '.md': 'markdown'
+        '.md': 'markdown',
+        '.sh': 'shellscript',
+        '.bash': 'shellscript',
+        '.ps1': 'powershell',
+        '.sql': 'sql',
+        '.vue': 'vue',
+        '.svelte': 'svelte',
+        '.dart': 'dart',
+        '.graphql': 'graphql',
+        '.proto': 'protobuf'
     };
 
     return languageMap[ext] || 'plaintext';

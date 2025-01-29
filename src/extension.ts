@@ -63,6 +63,10 @@ class ContextGeneratorViewProvider implements vscode.WebviewViewProvider {
                         await this._saveConfig(data.config);
                         break;
                     }
+                    case 'openFilePicker': {
+                        await this._handleFilePicker(data.isGlobal);
+                        break;
+                    }
                 }
             });
 
@@ -105,6 +109,7 @@ class ContextGeneratorViewProvider implements vscode.WebviewViewProvider {
                     excludePatterns,
                     maxFileSizeKB: config.get<number>('maxFileSizeKB') || 1024,
                     headerTemplate,
+                    useRelativePaths: config.get<boolean>('useRelativePaths') ?? true,
                     onProgress: (progress: number, status: string) => {
                         this._postMessage({ type: 'progress', value: 20 + (progress * 0.8), status });
                     }
@@ -137,12 +142,14 @@ class ContextGeneratorViewProvider implements vscode.WebviewViewProvider {
             const projectExclusions = config.get<string[]>('projectExclusions') || [];
             const globalExclusions = config.get<string[]>('globalExclusions') || [];
             const headerTemplate = config.get<string>('headerTemplate') || '';
+            const useRelativePaths = config.get<boolean>('useRelativePaths') ?? true;
 
             await this._postMessage({
                 type: 'config',
                 projectExclusions,
                 globalExclusions,
-                headerTemplate
+                headerTemplate,
+                useRelativePaths
             });
             console.log('Configuration sent successfully');
         } catch (error) {
@@ -151,17 +158,84 @@ class ContextGeneratorViewProvider implements vscode.WebviewViewProvider {
         }
     }
 
-    private async _saveConfig(config: { projectExclusions: string[], globalExclusions: string[], headerTemplate: string }) {
+    private async _saveConfig(config: { 
+        projectExclusions: string[], 
+        globalExclusions: string[], 
+        headerTemplate: string,
+        useRelativePaths: boolean 
+    }) {
         try {
             const configuration = vscode.workspace.getConfiguration('codebaseContext');
             await configuration.update('projectExclusions', config.projectExclusions, vscode.ConfigurationTarget.Workspace);
             await configuration.update('globalExclusions', config.globalExclusions, vscode.ConfigurationTarget.Global);
             await configuration.update('headerTemplate', config.headerTemplate, vscode.ConfigurationTarget.Global);
+            await configuration.update('useRelativePaths', config.useRelativePaths, vscode.ConfigurationTarget.Global);
             await this._postMessage({ type: 'saveSuccess' });
         } catch (error) {
             console.error('Error saving configuration:', error);
             vscode.window.showErrorMessage(`Failed to save configuration: ${error}`);
             await this._postMessage({ type: 'error', message: `Failed to save configuration: ${error}` });
+        }
+    }
+
+    private async _handleFilePicker(isGlobal: boolean = false) {
+        try {
+            const workspaceFolder = vscode.workspace.workspaceFolders?.[0];
+            if (!workspaceFolder) {
+                throw new Error('No workspace folder found');
+            }
+
+            // Configure the file picker to show all files and folders
+            const files = await vscode.window.showOpenDialog({
+                canSelectFiles: true,
+                canSelectFolders: true,
+                canSelectMany: true,
+                defaultUri: workspaceFolder.uri,
+                openLabel: 'Add to Exclusions',
+                title: 'Select Files or Folders to Exclude'
+            });
+
+            if (files && files.length > 0) {
+                // Validate files are within workspace
+                const invalidFiles = files.filter(file => !file.fsPath.startsWith(workspaceFolder.uri.fsPath));
+                if (invalidFiles.length > 0) {
+                    const invalidPaths = invalidFiles.map(f => f.fsPath).join('\n');
+                    throw new Error(`Selected files must be within the workspace:\n${invalidPaths}`);
+                }
+
+                // Convert absolute paths to workspace-relative paths
+                const relativePaths = files.map(file => {
+                    return vscode.workspace.asRelativePath(file, false);
+                });
+
+                // Add '/**' to folder paths to exclude all contents
+                const patterns = await Promise.all(relativePaths.map(async path => {
+                    try {
+                        const uri = vscode.Uri.joinPath(workspaceFolder.uri, path);
+                        const stat = await vscode.workspace.fs.stat(uri);
+                        if (stat.type & vscode.FileType.Directory) {
+                            return `${path}/**`;
+                        }
+                        // For files, escape special characters in the path
+                        return path.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+                    } catch (error) {
+                        console.error(`Error processing path ${path}:`, error);
+                        // If stat fails, treat as file path and escape it
+                        return path.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+                    }
+                }));
+
+                await this._postMessage({
+                    type: 'filesPicked',
+                    files: patterns,
+                    isGlobal
+                });
+            }
+        } catch (error) {
+            console.error('Error handling file picker:', error);
+            const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+            vscode.window.showErrorMessage(`Failed to handle file picker: ${errorMessage}`);
+            await this._postMessage({ type: 'error', message: `Failed to handle file picker: ${errorMessage}` });
         }
     }
 

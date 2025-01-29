@@ -8,6 +8,7 @@ interface ContextOptions {
     excludePatterns: string[];
     maxFileSizeKB: number;
     headerTemplate: string;
+    useRelativePaths: boolean;
     onProgress?: (progress: number, status: string) => void;
 }
 
@@ -15,74 +16,72 @@ export async function generateContext(
     workspacePath: string,
     options: ContextOptions
 ): Promise<string> {
-    const { excludePatterns, maxFileSizeKB, headerTemplate, onProgress } = options;
+    const {
+        excludePatterns,
+        maxFileSizeKB,
+        headerTemplate,
+        useRelativePaths,
+        onProgress
+    } = options;
 
-    try {
-        // Generate header
-        onProgress?.(0, 'Generating header...');
-        const header = generateHeader(headerTemplate, workspacePath);
+    // Generate header
+    const header = generateHeader(headerTemplate, workspacePath, useRelativePaths);
 
-        // Get all files (with exclusions)
-        onProgress?.(10, 'Scanning workspace...');
-        const files = await getAllFiles(workspacePath, excludePatterns, (scanned) => {
-            onProgress?.(10 + (scanned * 0.2), 'Scanning workspace...');
-        });
+    // Get file tree
+    const fileTree = await getFileTree(workspacePath, excludePatterns);
 
-        // Generate file tree (using already filtered files)
-        onProgress?.(30, 'Generating file tree...');
-        const fileTree = await getFileTree(workspacePath, excludePatterns);
+    // Get all files
+    const files = await getAllFiles(workspacePath, excludePatterns, progress => {
+        onProgress?.(progress * 0.3, 'Scanning files...');
+    });
 
-        // Process files in batches for better performance
-        onProgress?.(40, 'Processing files...');
-        const batchSize = 10;
-        const fileContents: string[] = [];
-        const totalFiles = files.length;
+    // Process files
+    let processedFiles = 0;
+    const totalFiles = files.length;
+    const contents: string[] = [];
 
-        for (let i = 0; i < files.length; i += batchSize) {
-            const batch = files.slice(i, i + batchSize);
-            const batchResults = await Promise.all(
-                batch.map(async (file) => {
-                    try {
-                        const stats = await fs.stat(file);
-                        const relativePath = path.relative(workspacePath, file);
+    for (const file of files) {
+        try {
+            const stats = await fs.stat(file);
+            const fileSizeKB = stats.size / 1024;
 
-                        // Skip files that are too large
-                        if (stats.size > maxFileSizeKB * 1024) {
-                            return `\n### ${relativePath}\nFile exceeds size limit (${Math.round(stats.size / 1024)}KB > ${maxFileSizeKB}KB)`;
-                        }
+            if (fileSizeKB > maxFileSizeKB) {
+                const displayPath = useRelativePaths ? path.relative(workspacePath, file) : file;
+                contents.push(`\n### ${displayPath}\nFile exceeds size limit (${Math.round(fileSizeKB)}KB > ${maxFileSizeKB}KB)`);
+                continue;
+            }
 
-                        const content = await fs.readFile(file, 'utf-8');
-                        const extension = path.extname(file).slice(1);
+            const content = await fs.readFile(file, 'utf-8');
+            const displayPath = useRelativePaths ? path.relative(workspacePath, file) : file;
+            const extension = path.extname(file).slice(1);
+            contents.push(`\n### ${displayPath}\n\`\`\`${extension}\n${content}\n\`\`\``);
 
-                        return `\n### ${relativePath}\n\`\`\`${extension}\n${content}\n\`\`\``;
-                    } catch (error) {
-                        console.error(`Error processing file ${file}:`, error);
-                        return `\n### ${path.relative(workspacePath, file)}\nError: Failed to read file`;
-                    }
-                })
-            );
-
-            fileContents.push(...batchResults);
-            const progress = 40 + ((i + batch.length) / totalFiles * 50);
-            onProgress?.(progress, `Processing files (${i + batch.length}/${totalFiles})...`);
+            processedFiles++;
+            onProgress?.(0.3 + (processedFiles / totalFiles * 0.7), `Processing files (${processedFiles}/${totalFiles})...`);
+        } catch (error) {
+            console.error(`Error processing file ${file}:`, error);
+            const displayPath = useRelativePaths ? path.relative(workspacePath, file) : file;
+            contents.push(`\n### ${displayPath}\nError: Failed to read file`);
         }
-
-        onProgress?.(90, 'Finalizing context...');
-
-        // Combine all parts
-        const result = [
-            header,
-            '\n## File Structure\n```\n' + fileTree + '\n```',
-            '\n## Files',
-            ...fileContents
-        ].join('\n');
-
-        onProgress?.(100, 'Complete!');
-        return result;
-    } catch (error) {
-        console.error('Error generating context:', error);
-        throw error;
     }
+
+    return [
+        header,
+        '\n## Project Structure\n```\n' + fileTree + '```',
+        '\n## File Contents',
+        ...contents
+    ].join('\n');
+}
+
+function generateHeader(template: string, workspacePath: string, useRelativePaths: boolean): string {
+    const projectName = path.basename(workspacePath);
+    const date = new Date().toISOString();
+    const displayPath = useRelativePaths ? '.' : workspacePath;
+
+    return template
+        .replace('{projectName}', projectName)
+        .replace('{date}', date)
+        .replace('{workspacePath}', displayPath);
 }
 
 async function getAllFiles(
@@ -118,14 +117,4 @@ async function getAllFiles(
 
     await scan(dir);
     return files.sort();
-}
-
-function generateHeader(template: string, workspacePath: string): string {
-    const projectName = path.basename(workspacePath);
-    const date = new Date().toISOString();
-
-    return template
-        .replace('{projectName}', projectName)
-        .replace('{date}', date)
-        .replace('{workspacePath}', workspacePath);
 } 

@@ -6,6 +6,7 @@ interface TreeNode {
     name: string;
     children: TreeNode[];
     isFile: boolean;
+    isSymlink?: boolean;
 }
 
 export async function getFileTree(
@@ -22,32 +23,40 @@ async function buildTree(
 ): Promise<TreeNode> {
     const name = path.basename(dirPath);
     const children: TreeNode[] = [];
-    const entries = await fs.readdir(dirPath, { withFileTypes: true });
+    
+    try {
+        const entries = await fs.readdir(dirPath, { withFileTypes: true });
 
-    // Sort entries: directories first, then files, both alphabetically
-    const sortedEntries = entries.sort((a, b) => {
-        if (a.isDirectory() === b.isDirectory()) {
-            return a.name.localeCompare(b.name);
-        }
-        return b.isDirectory() ? 1 : -1;
-    });
+        // Sort entries: directories first, then files, both alphabetically
+        const sortedEntries = entries.sort((a, b) => {
+            if (a.isDirectory() === b.isDirectory()) {
+                return a.name.localeCompare(b.name, undefined, { numeric: true, sensitivity: 'base' });
+            }
+            return b.isDirectory() ? 1 : -1;
+        });
 
-    for (const entry of sortedEntries) {
-        const fullPath = path.join(dirPath, entry.name);
-        
-        if (shouldExcludeFile(fullPath, excludePatterns)) {
-            continue;
-        }
+        for (const entry of sortedEntries) {
+            const fullPath = path.join(dirPath, entry.name);
+            
+            if (shouldExcludeFile(fullPath, excludePatterns)) {
+                continue;
+            }
 
-        if (entry.isDirectory()) {
-            children.push(await buildTree(fullPath, excludePatterns));
-        } else {
-            children.push({
-                name: entry.name,
-                children: [],
-                isFile: true
-            });
+            if (entry.isDirectory()) {
+                children.push(await buildTree(fullPath, excludePatterns));
+            } else {
+                // Handle symlinks and files
+                const isSymlink = entry.isSymbolicLink();
+                children.push({
+                    name: entry.name,
+                    children: [],
+                    isFile: true,
+                    isSymlink
+                });
+            }
         }
+    } catch (error) {
+        console.error(`Error processing directory ${dirPath}:`, error);
     }
 
     return {
@@ -65,7 +74,13 @@ function renderTree(
     const marker = isLast ? '└── ' : '├── ';
     const childPrefix = isLast ? '    ' : '│   ';
     
-    let result = prefix + marker + node.name + '\n';
+    // Add file/directory indicators and handle symlinks
+    let displayName = node.name;
+    if (node.isSymlink) {
+        displayName += ' -> (symlink)';
+    }
+    
+    let result = prefix + marker + displayName + '\n';
 
     for (let i = 0; i < node.children.length; i++) {
         const child = node.children[i];

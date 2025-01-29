@@ -4,6 +4,18 @@
   "description": "Generate shareable codebase context for AI-powered development assistants",
   "version": "0.1.0-alpha",
   "publisher": "vscode",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/personal/codebaseContext.git"
+  },
+  "author": {
+    "name": "Daan Hooghiemster"
+  },
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/personal/codebaseContext/issues"
+  },
+  "homepage": "https://github.com/personal/codebaseContext#readme",
   "engines": {
     "vscode": "^1.80.0"
   },
@@ -87,6 +99,11 @@
           "type": "string",
           "default": "# {projectName} Codebase Context\n\nGenerated on: {date}\nWorkspace: {workspacePath}\n\nThis is the entire codebase of my project. Please analyze and understand the code structure, dependencies, and functionality. The context includes key files and excludes build artifacts, dependencies, and sensitive information.",
           "description": "Template for context header"
+        },
+        "codebaseContext.useRelativePaths": {
+          "type": "boolean",
+          "default": true,
+          "description": "Use relative paths instead of absolute paths in the generated context"
         }
       }
     }
@@ -97,7 +114,8 @@
     "watch": "webpack --watch",
     "package": "webpack --mode production --devtool hidden-source-map",
     "lint": "eslint src --ext ts",
-    "package-extension": "vsce package"
+    "package-extension": "vsce package --allow-missing-repository",
+    "build-all": "npm-run-all package package-extension"
   },
   "devDependencies": {
     "@types/minimatch": "^5.1.2",
@@ -107,6 +125,7 @@
     "@typescript-eslint/parser": "^6.7.0",
     "@vscode/vsce": "^2.21.0",
     "eslint": "^8.26.0",
+    "npm-run-all": "^4.1.5",
     "ts-loader": "^9.4.4",
     "typescript": "^5.2.2",
     "webpack": "^5.88.2",

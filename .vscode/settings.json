@@ -1,3 +1,13 @@
 {
-    "codebaseContext.projectExclusions": []
+    "codebaseContext.projectExclusions": [
+        ".cursor",
+        ".vscode",
+        ".git",
+        "dist",
+        ".gitignore",
+        ".vscodeimports",
+        "LICENSE",
+        ".vstix",
+        ".vscodeignore"
+    ]
 }
