@@ -24,10 +24,7 @@ export async function generateContext(
         onProgress
     } = options;
 
-    // Generate header
-    const header = generateHeader(headerTemplate, workspacePath, useRelativePaths);
-
-    // Get file tree
+    // Get file tree first
     const fileTree = await getFileTree(workspacePath, excludePatterns);
 
     // Get all files
@@ -65,23 +62,31 @@ export async function generateContext(
         }
     }
 
-    return [
-        header,
-        '\n## Project Structure\n```\n' + fileTree + '```',
-        '\n## File Contents',
-        ...contents
-    ].join('\n');
+    // Combine all content sections
+    const contentSection = contents.join('\n');
+
+    // Generate header with all components
+    return generateHeader(headerTemplate, workspacePath, useRelativePaths, fileTree, contentSection);
 }
 
-function generateHeader(template: string, workspacePath: string, useRelativePaths: boolean): string {
+function generateHeader(
+    template: string, 
+    workspacePath: string, 
+    useRelativePaths: boolean,
+    fileTree: string,
+    content: string
+): string {
     const projectName = path.basename(workspacePath);
     const date = new Date().toISOString();
     const displayPath = useRelativePaths ? '.' : workspacePath;
 
+    // Replace all template variables
     return template
         .replace('{projectName}', projectName)
         .replace('{date}', date)
-        .replace('{workspacePath}', displayPath);
+        .replace('{workspacePath}', displayPath)
+        .replace('{fileTree}', fileTree)
+        .replace('{content}', content);
 }
 
 async function getAllFiles(

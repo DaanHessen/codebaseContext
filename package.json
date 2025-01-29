@@ -97,7 +97,7 @@
         },
         "codebaseContext.headerTemplate": {
           "type": "string",
-          "default": "# {projectName} Codebase Context\n\nGenerated on: {date}\nWorkspace: {workspacePath}\n\nThis is the entire codebase of my project. Please analyze and understand the code structure, dependencies, and functionality. The context includes key files and excludes build artifacts, dependencies, and sensitive information.",
+          "default": "# {projectName} Codebase Context\n\n## GENERATED ON:\n\n{date}\n\n### NOTE\n\nThis is the entire codebase of my project. Please analyze and understand the code structure, dependencies, and functionality. The context includes key files and excludes build artifacts, dependencies, and sensitive information.\n\n### FILE TREE\n\n{fileTree}\n\n## CONTEXT\n\n{content}",
           "description": "Template for context header"
         },
         "codebaseContext.useRelativePaths": {
