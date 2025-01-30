@@ -1,0 +1,8 @@
+---
+description: 
+globs: 
+---
+
+# Your rule content
+
+- this project is component-based, so please make sure you adhere to component-based structure with good MVC (where applicable) implementation. put styles either in [styles.ts](mdc:src/webview/styles/styles.ts) [styles.css](mdc:src/webview/styles.css) or in their own seprated containers.

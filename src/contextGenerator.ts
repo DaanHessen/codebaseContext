@@ -8,92 +8,101 @@ interface ContextOptions {
     excludePatterns: string[];
     maxFileSizeKB: number;
     headerTemplate: string;
+    useRelativePaths: boolean;
     onProgress?: (progress: number, status: string) => void;
 }
 
 export async function generateContext(
     workspacePath: string,
-    options: ContextOptions
+    options: ContextOptions,
+    cancellationToken?: vscode.CancellationToken
 ): Promise<string> {
-    const { excludePatterns, maxFileSizeKB, headerTemplate, onProgress } = options;
+    const {
+        excludePatterns,
+        maxFileSizeKB,
+        headerTemplate,
+        useRelativePaths,
+        onProgress
+    } = options;
 
-    try {
-        // Generate header
-        onProgress?.(0, 'Generating header...');
-        const header = generateHeader(headerTemplate, workspacePath);
+    const fileTree = await getFileTree(workspacePath, excludePatterns);
 
-        // Get all files (with exclusions)
-        onProgress?.(10, 'Scanning workspace...');
-        const files = await getAllFiles(workspacePath, excludePatterns, (scanned) => {
-            onProgress?.(10 + (scanned * 0.2), 'Scanning workspace...');
-        });
+    const files = await getAllFiles(workspacePath, excludePatterns, progress => {
+        onProgress?.(progress * 0.3, 'Scanning files...');
+    }, cancellationToken);
 
-        // Generate file tree (using already filtered files)
-        onProgress?.(30, 'Generating file tree...');
-        const fileTree = await getFileTree(workspacePath, excludePatterns);
+    let processedFiles = 0;
+    const totalFiles = files.length;
+    const contents: string[] = [];
 
-        // Process files in batches for better performance
-        onProgress?.(40, 'Processing files...');
-        const batchSize = 10;
-        const fileContents: string[] = [];
-        const totalFiles = files.length;
-
-        for (let i = 0; i < files.length; i += batchSize) {
-            const batch = files.slice(i, i + batchSize);
-            const batchResults = await Promise.all(
-                batch.map(async (file) => {
-                    try {
-                        const stats = await fs.stat(file);
-                        const relativePath = path.relative(workspacePath, file);
-
-                        // Skip files that are too large
-                        if (stats.size > maxFileSizeKB * 1024) {
-                            return `\n### ${relativePath}\nFile exceeds size limit (${Math.round(stats.size / 1024)}KB > ${maxFileSizeKB}KB)`;
-                        }
-
-                        const content = await fs.readFile(file, 'utf-8');
-                        const extension = path.extname(file).slice(1);
-
-                        return `\n### ${relativePath}\n\`\`\`${extension}\n${content}\n\`\`\``;
-                    } catch (error) {
-                        console.error(`Error processing file ${file}:`, error);
-                        return `\n### ${path.relative(workspacePath, file)}\nError: Failed to read file`;
-                    }
-                })
-            );
-
-            fileContents.push(...batchResults);
-            const progress = 40 + ((i + batch.length) / totalFiles * 50);
-            onProgress?.(progress, `Processing files (${i + batch.length}/${totalFiles})...`);
+    for (const file of files) {
+        if (cancellationToken?.isCancellationRequested) {
+            throw new vscode.CancellationError();
         }
 
-        onProgress?.(90, 'Finalizing context...');
+        try {
+            const stats = await fs.stat(file);
+            const fileSizeKB = stats.size / 1024;
 
-        // Combine all parts
-        const result = [
-            header,
-            '\n## File Structure\n```\n' + fileTree + '\n```',
-            '\n## Files',
-            ...fileContents
-        ].join('\n');
+            if (fileSizeKB > maxFileSizeKB) {
+                const displayPath = useRelativePaths ? path.relative(workspacePath, file) : file;
+                contents.push(`\n### ${displayPath}\nFile exceeds size limit (${Math.round(fileSizeKB)}KB > ${maxFileSizeKB}KB)`);
+                continue;
+            }
 
-        onProgress?.(100, 'Complete!');
-        return result;
-    } catch (error) {
-        console.error('Error generating context:', error);
-        throw error;
+            const content = await fs.readFile(file, 'utf-8');
+            const displayPath = useRelativePaths ? path.relative(workspacePath, file) : file;
+            const extension = path.extname(file).slice(1);
+            contents.push(`\n### ${displayPath}\n\`\`\`${extension}\n${content}\n\`\`\``);
+
+            processedFiles++;
+            onProgress?.(0.3 + (processedFiles / totalFiles * 0.7), `Processing files (${processedFiles}/${totalFiles})...`);
+        } catch (error) {
+            console.error(`Error processing file ${file}:`, error);
+            const displayPath = useRelativePaths ? path.relative(workspacePath, file) : file;
+            contents.push(`\n### ${displayPath}\nError: Failed to read file`);
+        }
     }
+
+    const contentSection = contents.join('\n');
+
+    return generateHeader(headerTemplate, workspacePath, useRelativePaths, fileTree, contentSection);
+}
+
+function generateHeader(
+    template: string, 
+    workspacePath: string, 
+    useRelativePaths: boolean,
+    fileTree: string,
+    content: string
+): string {
+    const projectName = path.basename(workspacePath);
+    const date = new Date().toISOString();
+    const displayPath = useRelativePaths ? '.' : workspacePath;
+
+    return template
+        .replace('{projectName}', projectName)
+        .replace('{date}', date)
+        .replace('{workspacePath}', displayPath)
+        .replace('{fileTree}', fileTree)
+        .replace('{content}', content);
 }
 
 async function getAllFiles(
     dir: string,
     excludePatterns: string[],
-    onProgress?: (scanned: number) => void
+    onProgress?: (scanned: number) => void,
+    cancellationToken?: vscode.CancellationToken
 ): Promise<string[]> {
     const files: string[] = [];
     let scanned = 0;
 
     async function scan(directory: string): Promise<void> {
+        // Check for cancellation
+        if (cancellationToken?.isCancellationRequested) {
+            throw new vscode.CancellationError();
+        }
+
         const entries = await fs.readdir(directory, { withFileTypes: true });
         
         for (const entry of entries) {
@@ -118,14 +127,4 @@ async function getAllFiles(
 
     await scan(dir);
     return files.sort();
-}
-
-function generateHeader(template: string, workspacePath: string): string {
-    const projectName = path.basename(workspacePath);
-    const date = new Date().toISOString();
-
-    return template
-        .replace('{projectName}', projectName)
-        .replace('{date}', date)
-        .replace('{workspacePath}', workspacePath);
 } 

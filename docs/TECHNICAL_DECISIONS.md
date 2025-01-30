@@ -1,12 +1,14 @@
 # Technical Decisions
 
 ## Platform Choice
+
 - **VS Code Extension**: Direct integration with developer workflow
 - **JavaScript**: Lower barrier to entry for initial implementation
 - **VS Code Extension API**: Native integration capabilities
 - **Node.js Runtime**: Full access to filesystem and extension APIs
 
 ## Exclusion System
+
 - **Glob Patterns**: Industry-standard file matching
 - **Layered Configuration**:
   1. Default security exclusions (.env, credentials)
@@ -14,20 +16,23 @@
   3. Per-command overrides
 
 ## Performance Considerations
+
 - **Stream Processing**: For large file handling
 - **Parallel Processing**: Concurrent file operations
 - **Memory Management**: File size thresholds
 
 ## Output Design
+
 - **Markdown First**: Human/AI readable format
 - **Structured Sections**:
   - Custom header
   - File tree
   - Annotated code blocks
-- **Alternate Formats**: Plaintext fallback 
+- **Alternate Formats**: Plaintext fallback
 
 ## Change Tracking System
-- **Delta Generation**: 
+
+- **Delta Generation**:
   - Compare against last generated snapshot
   - Use cryptographic hashing for file changes
 - **Diff Visualization**:
@@ -41,4 +46,5 @@
   - 🟢 Unchanged (metadata only)
   - 🔴 Removed (with deletion notice)
   - 🟡 Modified (full diff display)
-  - 🟦 New (full content) 
+  - 🟦 New (full content)
+  

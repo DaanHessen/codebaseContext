@@ -1,10 +1,11 @@
 # Technical Specification
 
-## Architecture Overview 
+## Architecture Overview
 
 ## Delta Generation System
 
 ### Components
+
 1. **Version Snapshotter**
    - Stores lightweight manifest of previous state
    - Records file hashes and metadata
@@ -16,6 +17,7 @@
    - Applies color coding through ANSI/VSCode theming
 
 ### Output Example
+
 ```markdown
 ## Changes since 2023-07-20
 
@@ -28,5 +30,7 @@
 ```
 
 ### config.json (Removed)
+
 ❗ File removed from codebase
-``` 
+
+``` md

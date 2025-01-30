@@ -4,14 +4,23 @@
   "description": "Generate shareable codebase context for AI-powered development assistants",
   "version": "0.1.0-alpha",
   "publisher": "vscode",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/personal/codebaseContext.git"
+  },
+  "author": {
+    "name": "Daan Hooghiemster"
+  },
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/personal/codebaseContext/issues"
+  },
+  "homepage": "https://github.com/personal/codebaseContext#readme",
   "engines": {
     "vscode": "^1.80.0"
   },
   "categories": [
     "Other"
-  ],
-  "activationEvents": [
-    "onView:codebaseContextGenerator"
   ],
   "main": "./dist/extension.js",
   "contributes": {
@@ -44,37 +53,38 @@
         "codebaseContext.globalExclusions": {
           "type": "array",
           "default": [
-            "**/node_modules/**",
-            "**/.git/**",
-            "**/dist/**",
-            "**/build/**",
-            "**/coverage/**",
-            "**/*.log",
-            "**/.env*",
-            "**/package-lock.json",
-            "**/yarn.lock",
-            "**/.DS_Store",
-            "**/.next/**",
-            "**/.cache/**",
-            "**/.temp/**",
-            "**/tmp/**",
-            "**/__pycache__/**",
-            "**/*.pyc",
-            "**/venv/**",
-            "**/.venv/**",
-            "**/bin/**",
-            "**/obj/**",
-            "**/target/**",
-            "**/.idea/**",
-            "**/.vscode/**",
-            "**/bower_components/**",
-            "**/vendor/**",
-            "**/.vs/**",
-            "**/out/**",
-            "**/.output/**",
-            "**/generated/**",
-            "**/*.min.*",
-            "**/*.map"
+            "/node_modules",
+            "/.git",
+            "/dist",
+            "/build",
+            "/coverage",
+            "/.next",
+            "/.cache",
+            "/.temp",
+            "/tmp",
+            "/__pycache__",
+            "/venv",
+            "/.venv",
+            "/bin",
+            "/obj",
+            "/target",
+            "/.idea",
+            "/.vscode",
+            "/bower_components",
+            "/vendor",
+            "/.vs",
+            "/out",
+            "/.output",
+            "/generated",
+            ".log",
+            ".env",
+            "package-lock.json",
+            "yarn.lock",
+            ".DS_Store",
+            ".pyc",
+            ".min.js",
+            ".min.css",
+            ".map"
           ],
           "description": "Global patterns to exclude from context generation (applies to all workspaces)"
         },
@@ -85,8 +95,13 @@
         },
         "codebaseContext.headerTemplate": {
           "type": "string",
-          "default": "# {projectName} Codebase Context\n\nGenerated on: {date}\nWorkspace: {workspacePath}\n\nThis is the entire codebase of my project. Please analyze and understand the code structure, dependencies, and functionality. The context includes key files and excludes build artifacts, dependencies, and sensitive information.",
+          "default": "# {projectName} Codebase Context\n\n## GENERATED ON:\n\n{date}\n\n### NOTE\n\nThis is the entire codebase of my project. Please analyze and understand the code structure, dependencies, and functionality. The context includes key files and excludes build artifacts, dependencies, and sensitive information.\n\n### AVAILABLE PARAMETERS\n\n<span style=\"color: #007acc\">{projectName}</span>\nThe name of the current project/workspace\n\n<span style=\"color: #007acc\">{date}</span>\nThe current date and time when the context was generated\n\n<span style=\"color: #007acc\">{fileTree}</span>\nA tree structure representation of all included files\n\n<span style=\"color: #007acc\">{content}</span>\nThe actual content of all included files\n\n<span style=\"color: #007acc\">{workspacePath}</span>\nThe absolute or relative path to the workspace\n\n### FILE TREE\n\n{fileTree}\n\n## CONTEXT\n\n{content}",
           "description": "Template for context header"
+        },
+        "codebaseContext.useRelativePaths": {
+          "type": "boolean",
+          "default": true,
+          "description": "Use relative paths instead of absolute paths in the generated context"
         }
       }
     }
@@ -97,7 +112,8 @@
     "watch": "webpack --watch",
     "package": "webpack --mode production --devtool hidden-source-map",
     "lint": "eslint src --ext ts",
-    "package-extension": "vsce package"
+    "dev": "node ./scripts/dev.js",
+    "package-extension": "vsce package --allow-missing-repository"
   },
   "devDependencies": {
     "@types/minimatch": "^5.1.2",
@@ -106,7 +122,12 @@
     "@typescript-eslint/eslint-plugin": "^6.7.0",
     "@typescript-eslint/parser": "^6.7.0",
     "@vscode/vsce": "^2.21.0",
+    "autoprefixer": "^10.4.20",
     "eslint": "^8.26.0",
+    "npm-run-all": "^4.1.5",
+    "postcss-import": "^16.1.0",
+    "postcss-loader": "^8.1.1",
+    "raw-loader": "^4.0.2",
     "ts-loader": "^9.4.4",
     "typescript": "^5.2.2",
     "webpack": "^5.88.2",

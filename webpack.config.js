@@ -4,17 +4,20 @@ module.exports = {
   target: 'node',
   mode: 'none',
 
-  entry: './src/extension.ts',
+  entry: {
+    'extension': './src/extension.ts',
+    'webview/scripts/scripts': './src/webview/scripts/scripts.ts'
+  },
   output: {
     path: path.resolve(__dirname, 'dist'),
-    filename: 'extension.js',
+    filename: '[name].js',
     libraryTarget: 'commonjs2'
   },
   externals: {
     vscode: 'commonjs vscode'
   },
   resolve: {
-    extensions: ['.ts', '.js']
+    extensions: ['.ts', '.js', '.css']
   },
   module: {
     rules: [
@@ -25,6 +28,12 @@ module.exports = {
           {
             loader: 'ts-loader'
           }
+        ]
+      },
+      {
+        test: /\.css$/,
+        use: [
+          'raw-loader'
         ]
       }
     ]

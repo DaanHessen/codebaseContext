@@ -1,6 +1,7 @@
 # Future Enhancements
 
 ## AI-Centric Improvements
+
 1. **Contextual Awareness**
    - AI-suggested relevant files based on prompt analysis
    - Automatic context trimming for token limits
@@ -12,6 +13,7 @@
    - Context-aware prompt suggestions
 
 ## Output Enhancements
+
 1. **Adaptive Formats**
    - AI-optimized JSON formatting
    - Conversation-ready snippet generation
@@ -20,6 +22,7 @@
    - Summary blocks for unchanged sections
 
 ## Workflow Integration
+
 1. **AI Platform Bridges**
    - Direct export to ChatGPT/Claude/Copilot
    - API integration with common AI tools
@@ -28,6 +31,7 @@
    - Comment/annotation system
 
 ## Non-AI Use Cases
+
 1. **Onboarding Packages**
 2. **Lightweight Documentation**
-3. **Code Audits** 
+3. **Code Audits**

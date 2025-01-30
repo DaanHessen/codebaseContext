@@ -45,6 +45,7 @@ You can customize the extension's behavior through VS Code settings:
 - `codebaseContext.headerTemplate`: Template for the context header
 
 Example settings.json:
+
 ```json
 {
   "codebaseContext.maxFileSizeKB": 2048,
@@ -56,14 +57,14 @@ Example settings.json:
 
 The extension automatically excludes common patterns:
 
-- Build artifacts (dist/, build/, .next/, etc.)
-- Dependencies (node_modules/, vendor/, etc.)
-- Environment files (.env*)
-- Lock files (package-lock.json, yarn.lock)
-- Cache directories (.cache/, __pycache__/, etc.)
-- IDE files (.vscode/, .idea/, etc.)
-- Minified files (*.min.*)
-- Source maps (*.map)
+- Build artifacts (**dist/**, **build/**, **.next/**, etc.)
+- Dependencies (**node_modules/**, **vendor/**, etc.)
+- Environment files (**.env***)
+- Lock files (**package-lock.json**, **yarn.lock**)
+- Cache directories (**.cache/**, **pycache/**, etc.)
+- IDE files (**.vscode/**, **.idea/**, etc.)
+- Minified files (**\*.min.\***)
+- Source maps (**\*.map**)
 - And more...
 
 ## Security
@@ -95,4 +96,4 @@ This project is licensed under the MIT License - see the LICENSE file for detail
   - Selective file context generation
   - Smart exclusions
   - Syntax highlighting
-  - File tree visualization 
+  - File tree visualization
