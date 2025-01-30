@@ -27,7 +27,6 @@ async function buildTree(
     try {
         const entries = await fs.readdir(dirPath, { withFileTypes: true });
 
-        // Sort entries: directories first, then files, both alphabetically
         const sortedEntries = entries.sort((a, b) => {
             if (a.isDirectory() === b.isDirectory()) {
                 return a.name.localeCompare(b.name, undefined, { numeric: true, sensitivity: 'base' });
@@ -45,7 +44,6 @@ async function buildTree(
             if (entry.isDirectory()) {
                 children.push(await buildTree(fullPath, excludePatterns));
             } else {
-                // Handle symlinks and files
                 const isSymlink = entry.isSymbolicLink();
                 children.push({
                     name: entry.name,
@@ -74,7 +72,6 @@ function renderTree(
     const marker = isLast ? '└── ' : '├── ';
     const childPrefix = isLast ? '    ' : '│   ';
     
-    // Add file/directory indicators and handle symlinks
     let displayName = node.name;
     if (node.isSymlink) {
         displayName += ' -> (symlink)';

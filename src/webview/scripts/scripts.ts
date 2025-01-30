@@ -23,7 +23,6 @@ declare const acquireVsCodeApi: () => {
 
 const vscode = acquireVsCodeApi();
 
-// Initialize controllers
 window.addEventListener('load', () => {
   const state = vscode.getState() || {
     projectExclusions: [],
@@ -31,20 +30,16 @@ window.addEventListener('load', () => {
     headerTemplate: DEFAULT_HEADER_TEMPLATE
   };
 
-  // Initialize tab switching
   TabController.init();
 
-  // Initialize progress tracking
   ProgressController.initialize(vscode);
 
-  // Initialize exclusion management
   const exclusionController = new ExclusionController(
     (msg) => vscode.postMessage(msg),
     state.projectExclusions,
     state.globalExclusions
   );
 
-  // Handle messages from extension
   window.addEventListener('message', (event: MessageEvent) => {
     const message = event.data;
     switch (message.type) {
@@ -73,7 +68,6 @@ window.addEventListener('load', () => {
     }
   });
 
-  // Add generate button click handler
   const generateBtn = document.getElementById('generateBtn');
   if (generateBtn) {
     generateBtn.addEventListener('click', () => {
@@ -90,7 +84,6 @@ window.addEventListener('load', () => {
     });
   }
 
-  // Add reset storage button click handler
   const resetStorageBtn = document.getElementById('resetStorageBtn');
   if (resetStorageBtn) {
     resetStorageBtn.addEventListener('click', () => {
@@ -102,32 +95,27 @@ window.addEventListener('load', () => {
     });
   }
 
-  // Request initial configuration
   vscode.postMessage({ command: 'getConfig' });
 });
 
 function updateUI(config: any) {
-  // Update header template
   const headerTemplate = document.getElementById('headerTemplate') as HTMLTextAreaElement;
   if (headerTemplate) {
     headerTemplate.value = config.headerTemplate || DEFAULT_HEADER_TEMPLATE;
   }
 
-  // Get the exclusion controller instance
   const exclusionController = new ExclusionController(
     (msg) => vscode.postMessage(msg),
     config.projectExclusions || [],
     config.globalExclusions || []
   );
 
-  // Save state
   vscode.setState({
     projectExclusions: config.projectExclusions || [],
     globalExclusions: config.globalExclusions || [],
     headerTemplate: config.headerTemplate || DEFAULT_HEADER_TEMPLATE
   });
 
-  // Update UI with new exclusions
   if (config.projectExclusions) {
     exclusionController.setExclusions('project', config.projectExclusions);
   }
@@ -138,7 +126,6 @@ function updateUI(config: any) {
 
 export function getScripts(): string {
     return `
-        // Initialization code using new controllers
         const exclusionController = new ExclusionController(vscode.postMessage);
         const progressController = new ProgressController();
         
@@ -153,7 +140,6 @@ export function getScripts(): string {
         let enabledProjectExclusions = new Set();
         let enabledGlobalExclusions = new Set();
 
-        // Ensure vscode API is available
         try {
             vscode = acquireVsCodeApi();
         } catch (error) {
@@ -161,7 +147,6 @@ export function getScripts(): string {
             throw error;
         }
 
-        // Initialize as soon as DOM is ready
         if (document.readyState === 'loading') {
             document.addEventListener('DOMContentLoaded', initializeWebview);
         } else {
@@ -172,14 +157,12 @@ export function getScripts(): string {
             if (initialized) return;
             
             try {
-                // Setup error handlers
                 window.onerror = function(message, source, lineno, colno, error) {
                     console.error('Error:', message, 'at', source, ':', lineno, ':', colno);
                     showError(message);
                     return false;
                 };
 
-                // Setup message handler
                 window.addEventListener('message', event => {
                     const message = event.data;
                     try {
@@ -203,11 +186,9 @@ export function getScripts(): string {
                     }
                 });
 
-                // Initialize UI
                 initializeTabs();
                 setupEventListeners();
                 
-                // Request initial configuration
                 vscode.postMessage({ command: 'getConfig' });
 
                 initialized = true;
@@ -223,7 +204,6 @@ export function getScripts(): string {
                     const tabName = tab.getAttribute('data-tab');
                     if (!tabName) return;
 
-                    // Update active states
                     document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
                     document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
 
@@ -236,7 +216,6 @@ export function getScripts(): string {
 
         function validatePattern(pattern) {
             pattern = pattern.trim();
-            // Pattern must start with / for folders, . for file types, or contain . for specific files
             if (pattern.startsWith('/')) return true; // Folder pattern
             if (pattern.startsWith('.')) return true; // File type pattern
             if (pattern.includes('.')) return true; // Specific file pattern
@@ -244,7 +223,6 @@ export function getScripts(): string {
         }
 
         function setupEventListeners() {
-            // Project exclusions input
             document.getElementById('newProjectPattern')?.addEventListener('keypress', (e) => {
                 if (e.key === 'Enter') {
                     const input = e.target;
@@ -268,7 +246,6 @@ export function getScripts(): string {
                 }
             });
 
-            // Global exclusions input
             document.getElementById('newGlobalPattern')?.addEventListener('keypress', (e) => {
                 if (e.key === 'Enter') {
                     const input = e.target;
@@ -292,7 +269,6 @@ export function getScripts(): string {
                 }
             });
 
-            // Generate button
             document.getElementById('generateBtn')?.addEventListener('click', () => {
                 const headerTemplate = document.getElementById('headerTemplate')?.value || '';
                 
@@ -307,7 +283,6 @@ export function getScripts(): string {
                 });
             });
 
-            // Header template
             document.getElementById('headerTemplate')?.addEventListener('input', autoSave);
         }
 
@@ -318,7 +293,6 @@ export function getScripts(): string {
             projectExclusions = config.projectExclusions || [];
             globalExclusions = config.globalExclusions || [];
             
-            // Initialize enabled sets with all exclusions
             enabledProjectExclusions = new Set(projectExclusions);
             enabledGlobalExclusions = new Set(globalExclusions);
             
@@ -438,7 +412,6 @@ export function getScripts(): string {
             updateExclusionList('global');
         }
 
-        // Add initialization call
         document.addEventListener('DOMContentLoaded', () => {
             ProgressController.initialize();
         });

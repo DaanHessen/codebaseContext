@@ -1,11 +1,12 @@
-/* Exclusions list */
 .exclusion-list {
   max-height: 200px;
+  min-height: 120px;
   overflow-y: auto;
   border: 1px solid var(--vscode-panel-border);
   border-radius: 2px;
   background: var(--vscode-input-background);
   margin-top: 0.5rem;
+  position: relative;
 }
 
 .exclusion-item {
@@ -53,13 +54,15 @@
   opacity: 1;
 }
 
-/* Add exclusion input */
 .add-exclusion {
   margin-bottom: 0.5rem;
+  display: flex;
+  gap: 0.5rem;
 }
 
 .exclusion-input {
-  width: 100%;
+  flex: 1;
+  max-width: 75%;
   padding: var(--input-padding-vertical) var(--input-padding-horizontal);
   border: 1px solid var(--vscode-input-border);
   background: var(--vscode-input-background);
@@ -68,7 +71,6 @@
   font-size: 0.9em;
 }
 
-/* Original exclusions.css styles below */
 .exclusions-list {
   margin-top: 1rem;
 }
@@ -118,11 +120,11 @@
   margin-left: auto;
 }
 
-.add-exclusion input {
-  width: 100%;
-  padding: 6px 10px;
-  border: 1px solid var(--vscode-input-border);
-  background: var(--vscode-input-background);
-  color: var(--vscode-input-foreground);
-  border-radius: 4px;
+.exclusion-item.placeholder {
+  opacity: 0.5;
+  font-style: italic;
+}
+
+.exclusion-item.placeholder .remove-btn {
+  visibility: hidden;
 } 

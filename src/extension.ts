@@ -6,7 +6,6 @@ import { DEFAULT_GLOBAL_EXCLUSIONS, DEFAULT_HEADER_TEMPLATE, resetConfiguration 
 export async function activate(context: vscode.ExtensionContext) {
     console.log('Activating Codebase Context Generator extension');
 
-    // Initialize default global exclusions if not set
     const config = vscode.workspace.getConfiguration('codebaseContext');
     const globalExclusions = config.get<string[]>('globalExclusions');
     
@@ -19,7 +18,6 @@ export async function activate(context: vscode.ExtensionContext) {
         }
     }
 
-    // Register the sidebar webview provider
     const provider = new ContextGeneratorViewProvider(context.extensionUri);
     context.subscriptions.push(
         vscode.window.registerWebviewViewProvider(
@@ -62,7 +60,6 @@ class ContextGeneratorViewProvider implements vscode.WebviewViewProvider {
             console.log('Generated HTML for webview');
             webviewView.webview.html = html;
 
-            // Handle messages from the webview
             webviewView.webview.onDidReceiveMessage(async (data) => {
                 console.log('Received message from webview:', data.command);
                 switch (data.command) {
@@ -93,7 +90,6 @@ class ContextGeneratorViewProvider implements vscode.WebviewViewProvider {
                 }
             });
 
-            // Send initial configuration
             this._sendConfig().catch(error => {
                 console.error('Error sending initial config:', error);
             });
@@ -112,15 +108,12 @@ class ContextGeneratorViewProvider implements vscode.WebviewViewProvider {
                 throw new Error('No workspace folder found');
             }
 
-            // Create new cancellation token source
             this._cancellationTokenSource = new vscode.CancellationTokenSource();
 
             await this._postMessage({ type: 'progress', value: 0, status: 'Starting generation...' });
 
-            // Combine project and global exclusions
             const excludePatterns = [...new Set([...projectExclusions, ...globalExclusions])];
 
-            // Save current configuration
             const config = vscode.workspace.getConfiguration('codebaseContext');
             await config.update('projectExclusions', projectExclusions, vscode.ConfigurationTarget.Workspace);
             await config.update('globalExclusions', globalExclusions, vscode.ConfigurationTarget.Global);
@@ -128,7 +121,6 @@ class ContextGeneratorViewProvider implements vscode.WebviewViewProvider {
 
             await this._postMessage({ type: 'progress', value: 20, status: 'Analyzing workspace...' });
 
-            // Generate context with progress updates
             const context = await generateContext(
                 workspaceFolder.uri.fsPath,
                 {
@@ -143,14 +135,12 @@ class ContextGeneratorViewProvider implements vscode.WebviewViewProvider {
                 this._cancellationTokenSource.token
             );
 
-            // Create and show output document
             const document = await vscode.workspace.openTextDocument({
                 content: context,
                 language: 'markdown'
             });
             await vscode.window.showTextDocument(document);
 
-            // Copy to clipboard
             await vscode.env.clipboard.writeText(context);
 
             await this._postMessage({ type: 'progress', value: 100, status: 'Complete!' });
@@ -220,7 +210,6 @@ class ContextGeneratorViewProvider implements vscode.WebviewViewProvider {
                 throw new Error('No workspace folder found');
             }
 
-            // Configure the file picker to show all files and folders
             const files = await vscode.window.showOpenDialog({
                 canSelectFiles: true,
                 canSelectFolders: true,
@@ -231,19 +220,16 @@ class ContextGeneratorViewProvider implements vscode.WebviewViewProvider {
             });
 
             if (files && files.length > 0) {
-                // Validate files are within workspace
                 const invalidFiles = files.filter(file => !file.fsPath.startsWith(workspaceFolder.uri.fsPath));
                 if (invalidFiles.length > 0) {
                     const invalidPaths = invalidFiles.map(f => f.fsPath).join('\n');
                     throw new Error(`Selected files must be within the workspace:\n${invalidPaths}`);
                 }
 
-                // Convert absolute paths to workspace-relative paths
                 const relativePaths = files.map(file => {
                     return vscode.workspace.asRelativePath(file, false);
                 });
 
-                // Add '/**' to folder paths to exclude all contents
                 const patterns = await Promise.all(relativePaths.map(async path => {
                     try {
                         const uri = vscode.Uri.joinPath(workspaceFolder.uri, path);
@@ -251,11 +237,9 @@ class ContextGeneratorViewProvider implements vscode.WebviewViewProvider {
                         if (stat.type & vscode.FileType.Directory) {
                             return `${path}/**`;
                         }
-                        // For files, escape special characters in the path
                         return path.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
                     } catch (error) {
                         console.error(`Error processing path ${path}:`, error);
-                        // If stat fails, treat as file path and escape it
                         return path.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
                     }
                 }));
@@ -291,9 +275,9 @@ class ContextGeneratorViewProvider implements vscode.WebviewViewProvider {
     private _getHtmlForWebview(webview: vscode.Webview) {
         try {
             return getWebviewContent(webview, this._extensionUri, {
-                projectExclusions: [],  // These will be populated via messages
-                globalExclusions: [],   // These will be populated via messages
-                headerTemplate: ''      // This will be populated via messages
+                projectExclusions: [], 
+                globalExclusions: [],   
+                headerTemplate: ''     
             });
         } catch (error) {
             console.error('Error generating webview content:', error);
@@ -311,7 +295,6 @@ class ContextGeneratorViewProvider implements vscode.WebviewViewProvider {
         try {
             await resetConfiguration(vscode);
 
-            // Reset webview state with default exclusions
             if (this._view) {
                 this._view.webview.postMessage({
                     type: 'config',

@@ -21,15 +21,6 @@ export class SettingsTab {
                       rows="10">${headerTemplate}</textarea>
           </div>
         </div>
-        <div class="section">
-          <div class="section-header">Storage Management</div>
-          <div class="section-description">
-            Reset all settings and exclusions to their default values
-          </div>
-          <div class="section-content">
-            <button id="resetStorageBtn" class="danger-button">Reset Storage</button>
-          </div>
-        </div>
       </div>
     `;
   }

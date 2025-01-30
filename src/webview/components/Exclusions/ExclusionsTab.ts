@@ -28,7 +28,9 @@ export class ExclusionsTab {
               class="exclusion-input">
           </div>
           <div id="${type}ExclusionList" class="exclusion-list">
-            ${exclusions.map(pattern => ExclusionList.renderItem(pattern, type)).join('')}
+            ${exclusions.length > 0 
+              ? exclusions.map(pattern => ExclusionList.renderItem(pattern, type)).join('')
+              : ExclusionList.renderPlaceholders(type)}
           </div>
         </div>
       </div>

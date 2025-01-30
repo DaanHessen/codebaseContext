@@ -27,7 +27,6 @@ export class ExclusionController {
   }
 
   private initializeListeners() {
-    // Add pattern listeners
     ['project', 'global'].forEach(type => {
       const input = document.getElementById(`new${this.capitalize(type)}Pattern`) as HTMLInputElement;
       if (input) {
@@ -43,7 +42,6 @@ export class ExclusionController {
       }
     });
 
-    // Remove pattern listeners are now handled by individual buttons
   }
 
   handlePatternAdd(type: 'project'|'global', pattern: string) {
@@ -80,10 +78,8 @@ export class ExclusionController {
     const container = document.getElementById(`${type}ExclusionList`);
     if (!container) return;
 
-    // Clear existing items
     container.innerHTML = '';
 
-    // Add new items
     const patterns = Array.from(this.enabledExclusions.get(type)!).sort();
     patterns.forEach(pattern => {
       const itemDiv = document.createElement('div');

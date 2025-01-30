@@ -1,9 +1,7 @@
-// Import CSS files
 import sharedCss from './components/_shared.css';
 import exclusionsCss from './components/_exclusions.css';
 import progressCss from './components/_progress.css';
 
-// Base CSS variables
 const baseStyles = `
 :root {
   --container-padding: 20px;
@@ -24,7 +22,6 @@ body {
 }
 `;
 
-// Combine all styles
 export const styles = `
 ${baseStyles}
 ${sharedCss}

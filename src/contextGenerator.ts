@@ -25,21 +25,17 @@ export async function generateContext(
         onProgress
     } = options;
 
-    // Get file tree first
     const fileTree = await getFileTree(workspacePath, excludePatterns);
 
-    // Get all files
     const files = await getAllFiles(workspacePath, excludePatterns, progress => {
         onProgress?.(progress * 0.3, 'Scanning files...');
     }, cancellationToken);
 
-    // Process files
     let processedFiles = 0;
     const totalFiles = files.length;
     const contents: string[] = [];
 
     for (const file of files) {
-        // Check for cancellation
         if (cancellationToken?.isCancellationRequested) {
             throw new vscode.CancellationError();
         }
@@ -68,10 +64,8 @@ export async function generateContext(
         }
     }
 
-    // Combine all content sections
     const contentSection = contents.join('\n');
 
-    // Generate header with all components
     return generateHeader(headerTemplate, workspacePath, useRelativePaths, fileTree, contentSection);
 }
 
@@ -86,7 +80,6 @@ function generateHeader(
     const date = new Date().toISOString();
     const displayPath = useRelativePaths ? '.' : workspacePath;
 
-    // Replace all template variables
     return template
         .replace('{projectName}', projectName)
         .replace('{date}', date)

@@ -19,7 +19,6 @@ export class ProgressController {
       return;
     }
 
-    // Hide cancel button initially
     this.cancelBtn.style.display = 'none';
 
     this.generateBtn.addEventListener('click', () => {
@@ -34,7 +33,6 @@ export class ProgressController {
   static update(value: number, status: string) {
     if (!this.progressFill || !this.progressStatus) return;
 
-    // Ensure progress container is visible during updates
     this.showProgress();
 
     this.progressFill.style.width = `${value}%`;

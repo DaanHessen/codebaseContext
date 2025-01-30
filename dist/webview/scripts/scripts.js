@@ -61,7 +61,6 @@ class ExclusionController {
         this.updateUI(type);
     }
     initializeListeners() {
-        // Add pattern listeners
         ['project', 'global'].forEach(type => {
             const input = document.getElementById(`new${this.capitalize(type)}Pattern`);
             if (input) {
@@ -76,7 +75,6 @@ class ExclusionController {
                 });
             }
         });
-        // Remove pattern listeners are now handled by individual buttons
     }
     handlePatternAdd(type, pattern) {
         if (this.validatePattern(pattern)) {
@@ -109,9 +107,7 @@ class ExclusionController {
         const container = document.getElementById(`${type}ExclusionList`);
         if (!container)
             return;
-        // Clear existing items
         container.innerHTML = '';
-        // Add new items
         const patterns = Array.from(this.enabledExclusions.get(type)).sort();
         patterns.forEach(pattern => {
             const itemDiv = document.createElement('div');
@@ -178,7 +174,6 @@ class ProgressController {
             console.error('Progress elements not found');
             return;
         }
-        // Hide cancel button initially
         this.cancelBtn.style.display = 'none';
         this.generateBtn.addEventListener('click', () => {
             this.showProgress();
@@ -190,7 +185,6 @@ class ProgressController {
     static update(value, status) {
         if (!this.progressFill || !this.progressStatus)
             return;
-        // Ensure progress container is visible during updates
         this.showProgress();
         this.progressFill.style.width = `${value}%`;
         this.progressStatus.textContent = status;
@@ -239,12 +233,10 @@ Object.defineProperty(exports, "__esModule", ({ value: true }));
 exports.TabController = void 0;
 class TabController {
     static init() {
-        // Show initial tab
         const initialTab = document.querySelector('.tab[data-tab="exclusions"]');
         if (initialTab) {
             this.switchTab(initialTab);
         }
-        // Add click handlers
         document.querySelectorAll('.tab').forEach(tab => {
             tab.addEventListener('click', (e) => {
                 this.switchTab(e.currentTarget);
@@ -255,13 +247,11 @@ class TabController {
         const tabName = tab.getAttribute('data-tab');
         if (!tabName)
             return;
-        // Update active states
         document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
         document.querySelectorAll('.tab-content').forEach(c => {
             c.classList.remove('active');
             c.style.display = 'none';
         });
-        // Activate selected tab
         tab.classList.add('active');
         const content = document.querySelector(`.tab-content[data-tab="${tabName}"]`);
         if (content) {
@@ -324,20 +314,15 @@ Workspace: {workspacePath}
 ## Files
 {content}`;
 const vscode = acquireVsCodeApi();
-// Initialize controllers
 window.addEventListener('load', () => {
     const state = vscode.getState() || {
         projectExclusions: [],
         globalExclusions: [],
         headerTemplate: DEFAULT_HEADER_TEMPLATE
     };
-    // Initialize tab switching
     TabController_1.TabController.init();
-    // Initialize progress tracking
     ProgressController_1.ProgressController.initialize(vscode);
-    // Initialize exclusion management
     const exclusionController = new ExclusionController_1.ExclusionController((msg) => vscode.postMessage(msg), state.projectExclusions, state.globalExclusions);
-    // Handle messages from extension
     window.addEventListener('message', (event) => {
         const message = event.data;
         switch (message.type) {
@@ -365,7 +350,6 @@ window.addEventListener('load', () => {
                 break;
         }
     });
-    // Add generate button click handler
     const generateBtn = document.getElementById('generateBtn');
     if (generateBtn) {
         generateBtn.addEventListener('click', () => {
@@ -380,7 +364,6 @@ window.addEventListener('load', () => {
             });
         });
     }
-    // Add reset storage button click handler
     const resetStorageBtn = document.getElementById('resetStorageBtn');
     if (resetStorageBtn) {
         resetStorageBtn.addEventListener('click', () => {
@@ -391,24 +374,19 @@ window.addEventListener('load', () => {
             }
         });
     }
-    // Request initial configuration
     vscode.postMessage({ command: 'getConfig' });
 });
 function updateUI(config) {
-    // Update header template
     const headerTemplate = document.getElementById('headerTemplate');
     if (headerTemplate) {
         headerTemplate.value = config.headerTemplate || DEFAULT_HEADER_TEMPLATE;
     }
-    // Get the exclusion controller instance
     const exclusionController = new ExclusionController_1.ExclusionController((msg) => vscode.postMessage(msg), config.projectExclusions || [], config.globalExclusions || []);
-    // Save state
     vscode.setState({
         projectExclusions: config.projectExclusions || [],
         globalExclusions: config.globalExclusions || [],
         headerTemplate: config.headerTemplate || DEFAULT_HEADER_TEMPLATE
     });
-    // Update UI with new exclusions
     if (config.projectExclusions) {
         exclusionController.setExclusions('project', config.projectExclusions);
     }
@@ -418,7 +396,6 @@ function updateUI(config) {
 }
 function getScripts() {
     return `
-        // Initialization code using new controllers
         const exclusionController = new ExclusionController(vscode.postMessage);
         const progressController = new ProgressController();
         
@@ -433,7 +410,6 @@ function getScripts() {
         let enabledProjectExclusions = new Set();
         let enabledGlobalExclusions = new Set();
 
-        // Ensure vscode API is available
         try {
             vscode = acquireVsCodeApi();
         } catch (error) {
@@ -441,7 +417,6 @@ function getScripts() {
             throw error;
         }
 
-        // Initialize as soon as DOM is ready
         if (document.readyState === 'loading') {
             document.addEventListener('DOMContentLoaded', initializeWebview);
         } else {
@@ -452,14 +427,12 @@ function getScripts() {
             if (initialized) return;
             
             try {
-                // Setup error handlers
                 window.onerror = function(message, source, lineno, colno, error) {
                     console.error('Error:', message, 'at', source, ':', lineno, ':', colno);
                     showError(message);
                     return false;
                 };
 
-                // Setup message handler
                 window.addEventListener('message', event => {
                     const message = event.data;
                     try {
@@ -483,11 +456,9 @@ function getScripts() {
                     }
                 });
 
-                // Initialize UI
                 initializeTabs();
                 setupEventListeners();
                 
-                // Request initial configuration
                 vscode.postMessage({ command: 'getConfig' });
 
                 initialized = true;
@@ -503,7 +474,6 @@ function getScripts() {
                     const tabName = tab.getAttribute('data-tab');
                     if (!tabName) return;
 
-                    // Update active states
                     document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
                     document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
 
@@ -516,7 +486,6 @@ function getScripts() {
 
         function validatePattern(pattern) {
             pattern = pattern.trim();
-            // Pattern must start with / for folders, . for file types, or contain . for specific files
             if (pattern.startsWith('/')) return true; // Folder pattern
             if (pattern.startsWith('.')) return true; // File type pattern
             if (pattern.includes('.')) return true; // Specific file pattern
@@ -524,7 +493,6 @@ function getScripts() {
         }
 
         function setupEventListeners() {
-            // Project exclusions input
             document.getElementById('newProjectPattern')?.addEventListener('keypress', (e) => {
                 if (e.key === 'Enter') {
                     const input = e.target;
@@ -548,7 +516,6 @@ function getScripts() {
                 }
             });
 
-            // Global exclusions input
             document.getElementById('newGlobalPattern')?.addEventListener('keypress', (e) => {
                 if (e.key === 'Enter') {
                     const input = e.target;
@@ -572,7 +539,6 @@ function getScripts() {
                 }
             });
 
-            // Generate button
             document.getElementById('generateBtn')?.addEventListener('click', () => {
                 const headerTemplate = document.getElementById('headerTemplate')?.value || '';
                 
@@ -587,7 +553,6 @@ function getScripts() {
                 });
             });
 
-            // Header template
             document.getElementById('headerTemplate')?.addEventListener('input', autoSave);
         }
 
@@ -598,7 +563,6 @@ function getScripts() {
             projectExclusions = config.projectExclusions || [];
             globalExclusions = config.globalExclusions || [];
             
-            // Initialize enabled sets with all exclusions
             enabledProjectExclusions = new Set(projectExclusions);
             enabledGlobalExclusions = new Set(globalExclusions);
             
@@ -718,7 +682,6 @@ function getScripts() {
             updateExclusionList('global');
         }
 
-        // Add initialization call
         document.addEventListener('DOMContentLoaded', () => {
             ProgressController.initialize();
         });
