@@ -2,7 +2,7 @@
 /******/ 	"use strict";
 /******/ 	var __webpack_modules__ = ({
 
-/***/ 18:
+/***/ 19:
 /***/ ((__unused_webpack_module, exports) => {
 
 
@@ -34,7 +34,140 @@ exports.Notification = Notification;
 
 /***/ }),
 
-/***/ 27:
+/***/ 33:
+/***/ ((__unused_webpack_module, exports) => {
+
+
+Object.defineProperty(exports, "__esModule", ({ value: true }));
+exports.ChatController = void 0;
+class ChatController {
+    static initialize(vscode) {
+        this.vscode = vscode;
+        this.chatInput = document.getElementById('chatInput');
+        this.modelSelector = document.getElementById('modelSelector');
+        this.chatMessages = document.getElementById('chatMessages');
+        this.sendButton = document.getElementById('sendMessage');
+        this.typingIndicator = document.getElementById('typingIndicator');
+        this.thinkingIndicator = document.getElementById('thinkingIndicator');
+        this.thinkingContent = document.querySelector('#thinkingIndicator .thinking-content');
+        if (!this.chatInput || !this.modelSelector || !this.chatMessages || !this.sendButton ||
+            !this.typingIndicator || !this.thinkingIndicator || !this.thinkingContent) {
+            console.error('Chat elements not found');
+            return;
+        }
+        this.chatInput.addEventListener('keydown', (e) => {
+            if (e.key === 'Enter' && !e.shiftKey) {
+                e.preventDefault();
+                this.sendMessage();
+            }
+        });
+        this.sendButton.addEventListener('click', () => {
+            this.sendMessage();
+        });
+    }
+    static sendMessage() {
+        if (!this.chatInput || !this.modelSelector || !this.chatMessages || !this.vscode ||
+            !this.sendButton || !this.typingIndicator || !this.thinkingIndicator || !this.thinkingContent)
+            return;
+        const message = this.chatInput.value.trim();
+        if (!message)
+            return;
+        this.addMessage('user', message);
+        this.chatInput.value = '';
+        this.sendButton.disabled = true;
+        if (this.modelSelector.value === 'deepseek-reasoner') {
+            this.showThinking();
+            // Simulate thinking process
+            let thoughts = [
+                "Analyzing the context...",
+                "Considering possible approaches...",
+                "Evaluating the best solution...",
+                "Formulating response..."
+            ];
+            let currentThought = 0;
+            const thinkingInterval = setInterval(() => {
+                if (currentThought < thoughts.length) {
+                    this.updateThinking(thoughts[currentThought]);
+                    currentThought++;
+                }
+                else {
+                    clearInterval(thinkingInterval);
+                    this.hideThinking();
+                    this.showTyping();
+                    // Simulate response after thinking
+                    setTimeout(() => {
+                        this.hideTyping();
+                        this.addMessage('assistant', 'After careful consideration, here is my response...');
+                    }, 2000);
+                }
+            }, 1500);
+        }
+        else {
+            this.showTyping();
+            // For now, simulate a response after 2 seconds
+            setTimeout(() => {
+                this.hideTyping();
+                this.addMessage('assistant', 'This is a simulated response. The API integration will be implemented soon.');
+            }, 2000);
+        }
+        this.vscode.postMessage({
+            command: 'chat',
+            message,
+            model: this.modelSelector.value
+        });
+    }
+    static showThinking() {
+        this.thinkingIndicator?.classList.add('visible');
+    }
+    static hideThinking() {
+        this.thinkingIndicator?.classList.remove('visible');
+    }
+    static updateThinking(thought) {
+        if (this.thinkingContent) {
+            this.thinkingContent.textContent = thought;
+        }
+    }
+    static showTyping() {
+        this.typingIndicator?.classList.add('visible');
+    }
+    static hideTyping() {
+        this.typingIndicator?.classList.remove('visible');
+    }
+    static addMessage(role, content) {
+        if (!this.chatMessages || !this.sendButton)
+            return;
+        const messageDiv = document.createElement('div');
+        messageDiv.className = `chat-message ${role}`;
+        // Convert markdown code blocks to HTML
+        const formattedContent = content.replace(/```(\w+)?\n([\s\S]*?)```/g, (_, lang, code) => {
+            return `<pre><code class="language-${lang || ''}">${this.escapeHtml(code.trim())}</code></pre>`;
+        });
+        messageDiv.innerHTML = formattedContent;
+        this.chatMessages.appendChild(messageDiv);
+        this.chatMessages.scrollTop = this.chatMessages.scrollHeight;
+        if (role === 'assistant') {
+            this.sendButton.disabled = false;
+        }
+    }
+    static escapeHtml(text) {
+        const div = document.createElement('div');
+        div.textContent = text;
+        return div.innerHTML;
+    }
+}
+exports.ChatController = ChatController;
+ChatController.chatInput = null;
+ChatController.modelSelector = null;
+ChatController.chatMessages = null;
+ChatController.sendButton = null;
+ChatController.typingIndicator = null;
+ChatController.thinkingIndicator = null;
+ChatController.thinkingContent = null;
+
+
+/***/ }),
+
+/***/ 30:
 /***/ ((__unused_webpack_module, exports) => {
 
 
@@ -156,7 +289,7 @@ exports.ExclusionController = ExclusionController;
 
 /***/ }),
 
-/***/ 29:
+/***/ 32:
 /***/ ((__unused_webpack_module, exports) => {
 
 
@@ -225,7 +358,7 @@ ProgressController.cancelBtn = null;
 
 /***/ }),
 
-/***/ 28:
+/***/ 31:
 /***/ ((__unused_webpack_module, exports) => {
 
 
@@ -299,10 +432,11 @@ var exports = __webpack_exports__;
 
 Object.defineProperty(exports, "__esModule", ({ value: true }));
 exports.getScripts = getScripts;
-const ExclusionController_1 = __webpack_require__(27);
-const TabController_1 = __webpack_require__(28);
-const ProgressController_1 = __webpack_require__(29);
-const Notification_1 = __webpack_require__(18);
+const ExclusionController_1 = __webpack_require__(30);
+const TabController_1 = __webpack_require__(31);
+const ProgressController_1 = __webpack_require__(32);
+const ChatController_1 = __webpack_require__(33);
+const Notification_1 = __webpack_require__(19);
 // Default header template
 const DEFAULT_HEADER_TEMPLATE = `# {projectName}
 Generated on: {date}
@@ -322,6 +456,7 @@ window.addEventListener('load', () => {
     };
     TabController_1.TabController.init();
     ProgressController_1.ProgressController.initialize(vscode);
+    ChatController_1.ChatController.initialize(vscode);
     const exclusionController = new ExclusionController_1.ExclusionController((msg) => vscode.postMessage(msg), state.projectExclusions, state.globalExclusions);
     window.addEventListener('message', (event) => {
         const message = event.data;
@@ -347,6 +482,9 @@ window.addEventListener('load', () => {
                 break;
             case 'error':
                 Notification_1.Notification.show(message.message, 'error');
+                break;
+            case 'chatResponse':
+                ChatController_1.ChatController.addMessage('assistant', message.response);
                 break;
         }
     });

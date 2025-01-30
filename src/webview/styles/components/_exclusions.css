@@ -1,9 +1,17 @@
+.tab-content[data-tab="exclusions"] {
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  padding: 0;
+}
+
 .exclusion-list {
   max-height: 200px;
   min-height: 120px;
   overflow-y: auto;
   border: 1px solid var(--vscode-panel-border);
-  border-radius: 2px;
+  border-radius: 4px;
   background: var(--vscode-input-background);
   margin-top: 0.5rem;
   position: relative;
@@ -127,4 +135,18 @@
 
 .exclusion-item.placeholder .remove-btn {
   visibility: hidden;
+}
+
+.section {
+  margin-bottom: 1rem;
+  padding: 0.75rem;
+  background: var(--vscode-input-background);
+  border: 1px solid var(--vscode-input-border);
+  border-radius: 4px;
+  width: 100%;
+  box-sizing: border-box;
+}
+
+.section:last-child {
+  margin-bottom: 0;
 } 

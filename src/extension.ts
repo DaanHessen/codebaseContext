@@ -32,6 +32,134 @@ export async function activate(context: vscode.ExtensionContext) {
     );
 
     console.log('Webview provider registered');
+
+    let panel: vscode.WebviewPanel | undefined = undefined;
+    let isGenerating = false;
+    let cancellationTokenSource: vscode.CancellationTokenSource | undefined;
+
+    const createWebviewPanel = () => {
+        panel = vscode.window.createWebviewPanel(
+            'codebaseContext',
+            'Codebase Context',
+            vscode.ViewColumn.Active,
+            {
+                enableScripts: true,
+                retainContextWhenHidden: true
+            }
+        );
+
+        panel.webview.html = getWebviewContent(panel.webview, context.extensionUri, {
+            projectExclusions: [],
+            globalExclusions: [],
+            headerTemplate: ''
+        });
+
+        panel.webview.onDidReceiveMessage(async (message) => {
+            switch (message.command) {
+                case 'saveConfig':
+                    await context.globalState.update('config', message.config);
+                    panel?.webview.postMessage({ type: 'saveSuccess' });
+                    break;
+
+                case 'generate':
+                    if (isGenerating) {
+                        cancellationTokenSource?.cancel();
+                        return;
+                    }
+
+                    isGenerating = true;
+                    cancellationTokenSource = new vscode.CancellationTokenSource();
+
+                    try {
+                        const workspaceFolder = vscode.workspace.workspaceFolders?.[0];
+                        if (!workspaceFolder) {
+                            throw new Error('No workspace folder open');
+                        }
+
+                        await generateContext(
+                            workspaceFolder.uri.fsPath,
+                            message.config,
+                            cancellationTokenSource.token
+                        );
+                    } catch (error) {
+                        panel?.webview.postMessage({
+                            type: 'error',
+                            message: error instanceof Error ? error.message : 'Unknown error occurred'
+                        });
+                    } finally {
+                        isGenerating = false;
+                        cancellationTokenSource = undefined;
+                    }
+                    break;
+
+                case 'chat':
+                    try {
+                        const apiKey = await context.secrets.get('deepseekApiKey');
+                        if (!apiKey) {
+                            panel?.webview.postMessage({
+                                type: 'error',
+                                message: 'Please set your DeepSeek API key in the Settings tab'
+                            });
+                            return;
+                        }
+
+                        const response = await fetch('https://api.deepseek.com/v1/chat/completions', {
+                            method: 'POST',
+                            headers: {
+                                'Content-Type': 'application/json',
+                                'Authorization': `Bearer ${apiKey}`
+                            },
+                            body: JSON.stringify({
+                                model: message.model,
+                                messages: [{ role: 'user', content: message.message }]
+                            })
+                        });
+
+                        if (!response.ok) {
+                            throw new Error(`API request failed: ${response.statusText}`);
+                        }
+
+                        const data = await response.json();
+                        panel?.webview.postMessage({
+                            type: 'chatResponse',
+                            response: data.choices[0].message.content
+                        });
+                    } catch (error) {
+                        panel?.webview.postMessage({
+                            type: 'error',
+                            message: error instanceof Error ? error.message : 'Failed to send message'
+                        });
+                    }
+                    break;
+
+                case 'saveApiKey':
+                    try {
+                        await context.secrets.store('deepseekApiKey', message.apiKey);
+                        panel?.webview.postMessage({ type: 'saveSuccess' });
+                    } catch (error) {
+                        panel?.webview.postMessage({
+                            type: 'error',
+                            message: 'Failed to save API key'
+                        });
+                    }
+                    break;
+            }
+        });
+
+        panel.onDidDispose(() => {
+            panel = undefined;
+        });
+    };
+
+    let disposable = vscode.commands.registerCommand('codebaseContext.start', () => {
+        if (panel) {
+            panel.reveal(vscode.ViewColumn.Active);
+        } else {
+            createWebviewPanel();
+        }
+    });
+
+    context.subscriptions.push(disposable);
 }
 
 class ContextGeneratorViewProvider implements vscode.WebviewViewProvider {

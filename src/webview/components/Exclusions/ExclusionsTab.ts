@@ -1,4 +1,5 @@
 import { ExclusionList } from "./ExclusionList";
+import { GenerateButton } from "../Shared/Button";
 
 export class ExclusionsTab {
   static render(projectExclusions: string[], globalExclusions: string[]): string {
@@ -6,6 +7,7 @@ export class ExclusionsTab {
       <div class="tab-content" data-tab="exclusions">
         ${this.renderSection('project', projectExclusions)}
         ${this.renderSection('global', globalExclusions)}
+        ${GenerateButton.render()}
       </div>
     `;
   }

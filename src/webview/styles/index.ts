@@ -1,6 +1,8 @@
-import sharedCss from './components/_shared.css';
-import exclusionsCss from './components/_exclusions.css';
-import progressCss from './components/_progress.css';
+import shared from './components/_shared.css';
+import exclusions from './components/_exclusions.css';
+import progress from './components/_progress.css';
+import settings from './components/_settings.css';
+import chat from './components/_chat.css';
 
 const baseStyles = `
 :root {
@@ -24,7 +26,9 @@ body {
 
 export const styles = `
 ${baseStyles}
-${sharedCss}
-${exclusionsCss}
-${progressCss}
+${shared}
+${exclusions}
+${progress}
+${settings}
+${chat}
 `; 

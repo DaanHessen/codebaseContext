@@ -1,6 +1,7 @@
 import { ExclusionController } from '../controllers/ExclusionController';
 import { TabController } from '../controllers/TabController';
 import { ProgressController } from '../controllers/ProgressController';
+import { ChatController } from '../controllers/ChatController';
 import { Notification } from '../components/Shared/Notification';
 
 // Default header template
@@ -33,6 +34,7 @@ window.addEventListener('load', () => {
   TabController.init();
 
   ProgressController.initialize(vscode);
+  ChatController.initialize(vscode);
 
   const exclusionController = new ExclusionController(
     (msg) => vscode.postMessage(msg),
@@ -64,6 +66,9 @@ window.addEventListener('load', () => {
         break;
       case 'error':
         Notification.show(message.message, 'error');
+        break;
+      case 'chatResponse':
+        ChatController.addMessage('assistant', message.response);
         break;
     }
   });
